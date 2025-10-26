@@ -1205,10 +1205,27 @@ make lint
 - NO unit tests of internal functions
 
 **Testing Strategy**:
-- All tests in `package conv_test` (external)
+- ONLY functional/end-to-end tests through public `Convert()` API
+- NO unit tests of internal functions
 - Table-driven tests with OpenAPI YAML → expected proto3 output
 - Each test case is self-contained with complete OpenAPI spec
 - Test objectives guide what internal code must do
+
+**Test File Organization**:
+- Split tests by feature area for maintainability
+- Feature-specific tests live in `internal/` using `package internal_test`
+- Integration tests live in project root using `package conv_test`
+- All tests (both internal_test and conv_test) call only the public `conv.Convert()` API
+- Test file structure:
+  - `convert_integration_test.go` - Complete end-to-end scenarios (project root, `package conv_test`)
+  - `internal/scalars_test.go` - Scalar type mappings (`package internal_test`)
+  - `internal/enums_test.go` - Enum conversion (`package internal_test`)
+  - `internal/arrays_test.go` - Array/repeated fields (`package internal_test`)
+  - `internal/nested_test.go` - Nested objects (`package internal_test`)
+  - `internal/refs_test.go` - Reference resolution (`package internal_test`)
+  - `internal/naming_test.go` - Naming conventions (`package internal_test`)
+  - `internal/errors_test.go` - Error handling (`package internal_test`)
+- All tests import the public package: `conv "github.com/duh-rpc/openapi-proto"`
 
 **Incremental Development**:
 - Each phase builds on previous phases
