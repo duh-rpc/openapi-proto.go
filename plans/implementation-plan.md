@@ -173,16 +173,16 @@ Explicitly out of scope for initial implementation:
 Establish the project foundation with dependencies, build automation, public API structure, and basic OpenAPI parsing. This phase creates the scaffolding for all future phases.
 
 ### Acceptance Criteria:
-- `go.mod` includes all required dependencies
-- `Makefile` with standard targets (`test`, `lint`, `tidy`, `ci`, `coverage`, `clean`)
-- Public `Convert()` function exists and can parse valid OpenAPI 3.0 YAML
-- Basic input validation (empty bytes, empty package name) returns errors
-- Can extract schemas from `components/schemas` section in YAML order
-- All tests pass with `make test`
+- [x] `go.mod` includes all required dependencies
+- [x] `Makefile` with standard targets (`test`, `lint`, `tidy`, `ci`, `coverage`, `clean`)
+- [x] Public `Convert()` function exists and can parse valid OpenAPI 3.0 YAML
+- [x] Basic input validation (empty bytes, empty package name) returns errors
+- [x] Can extract schemas from `components/schemas` section in YAML order
+- [x] All tests pass with `make test`
 
 ### Changes Required:
 
-#### 1. Dependency Setup
+#### 1. Dependency Setup ✅
 **File**: `go.mod`
 **Changes**: Add required dependencies
 
@@ -196,7 +196,7 @@ go mod tidy
 - `github.com/pb33f/libopenapi` - OpenAPI 3.0/3.1 parser
 - `github.com/stretchr/testify` - Testing assertions (require, assert)
 
-#### 2. Build Automation
+#### 2. Build Automation ✅
 **File**: `Makefile`
 **Changes**: Create Makefile based on duh-cli pattern
 
@@ -226,7 +226,7 @@ clean:
 	go clean
 ```
 
-#### 3. Public API Layer
+#### 3. Public API Layer ✅
 **File**: `convert.go`
 **Changes**: Define public API with basic structure
 
@@ -256,7 +256,7 @@ func TestConvertBasics(t *testing.T)
 - OpenAPI 2.0 (Swagger) → error "only OpenAPI 3.x is supported"
 - Valid JSON OpenAPI → success (libopenapi handles both YAML and JSON)
 
-#### 4. Parser Component
+#### 4. Parser Component ✅
 **File**: `internal/parser/parser.go`
 **Changes**: Create parser using libopenapi
 
