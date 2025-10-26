@@ -1,18 +1,16 @@
-package builder
+package internal
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/duh-rpc/openapi-proto/internal/mapper"
-	"github.com/duh-rpc/openapi-proto/internal/naming"
 	"github.com/duh-rpc/openapi-proto/internal/parser"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 )
 
 // Context holds state during conversion
 type Context struct {
-	Tracker  *naming.NameTracker
+	Tracker  *NameTracker
 	Messages []*ProtoMessage
 	Enums    []*ProtoEnum
 }
@@ -20,7 +18,7 @@ type Context struct {
 // NewContext creates a new conversion context
 func NewContext() *Context {
 	return &Context{
-		Tracker:  naming.NewNameTracker(),
+		Tracker:  NewNameTracker(),
 		Messages: []*ProtoMessage{},
 		Enums:    []*ProtoEnum{},
 	}
@@ -84,7 +82,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 	}
 
 	msg := &ProtoMessage{
-		Name:        naming.ToPascalCase(name),
+		Name:        ToPascalCase(name),
 		Description: schema.Description,
 		Fields:      []*ProtoField{},
 		Nested:      []*ProtoMessage{},
@@ -99,8 +97,8 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				return nil, fmt.Errorf("schema '%s': property '%s' has nil schema", name, propName)
 			}
 
-			protoFieldName := naming.ToSnakeCase(propName)
-			protoType, err := mapper.ProtoType(propSchema, propName)
+			protoFieldName := ToSnakeCase(propName)
+			protoType, err := ProtoType(propSchema, propName)
 			if err != nil {
 				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
 			}
@@ -113,7 +111,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				Repeated:    false,
 			}
 
-			if naming.NeedsJSONName(propName, protoFieldName) {
+			if NeedsJSONName(propName, protoFieldName) {
 				field.JSONName = propName
 			}
 

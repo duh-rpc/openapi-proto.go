@@ -1,12 +1,10 @@
-package generator
+package internal
 
 import (
 	"bytes"
 	"fmt"
 	"strings"
 	"text/template"
-
-	"github.com/duh-rpc/openapi-proto/internal/builder"
 )
 
 const protoTemplate = `syntax = "proto3";
@@ -20,12 +18,12 @@ package {{.PackageName}};
 
 type templateData struct {
 	PackageName string
-	Messages    []*builder.ProtoMessage
-	Enums       []*builder.ProtoEnum
+	Messages    []*ProtoMessage
+	Enums       []*ProtoEnum
 }
 
 // Generate creates proto3 output from messages and enums
-func Generate(packageName string, messages []*builder.ProtoMessage, enums []*builder.ProtoEnum) ([]byte, error) {
+func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum) ([]byte, error) {
 	funcMap := template.FuncMap{
 		"formatComment": formatCommentForTemplate,
 	}

@@ -1181,9 +1181,6 @@ make coverage
 
 # Run linter
 make lint
-
-# Run full CI pipeline
-make ci
 ```
 
 Final validation:
@@ -1197,9 +1194,6 @@ make coverage
 
 # No lint errors
 make lint
-
-# Full CI passes
-make ci
 ```
 
 ## Implementation Notes

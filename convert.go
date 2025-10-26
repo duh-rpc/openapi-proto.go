@@ -3,8 +3,7 @@ package conv
 import (
 	"fmt"
 
-	"github.com/duh-rpc/openapi-proto/internal/builder"
-	"github.com/duh-rpc/openapi-proto/internal/generator"
+	"github.com/duh-rpc/openapi-proto/internal"
 	"github.com/duh-rpc/openapi-proto/internal/parser"
 )
 
@@ -39,11 +38,11 @@ func Convert(openapi []byte, packageName string) ([]byte, error) {
 		return nil, err
 	}
 
-	ctx := builder.NewContext()
-	err = builder.BuildMessages(schemas, ctx)
+	ctx := internal.NewContext()
+	err = internal.BuildMessages(schemas, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return generator.Generate(packageName, ctx.Messages, ctx.Enums)
+	return internal.Generate(packageName, ctx.Messages, ctx.Enums)
 }
