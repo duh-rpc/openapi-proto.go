@@ -110,7 +110,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			}
 
 			protoFieldName := ToSnakeCase(propName)
-			protoType, err := ProtoType(propSchema, propName, propProxy, ctx)
+			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx)
 			if err != nil {
 				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
 			}
@@ -120,7 +120,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				Type:        protoType,
 				Number:      fieldNumber,
 				Description: propSchema.Description,
-				Repeated:    false,
+				Repeated:    repeated,
 			}
 
 			if NeedsJSONName(propName, protoFieldName) {

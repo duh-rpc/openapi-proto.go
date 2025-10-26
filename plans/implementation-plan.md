@@ -674,11 +674,11 @@ func TestConvertInlineEnum(t *testing.T)
 Implement conversion of OpenAPI arrays to proto3 `repeated` fields with proper item type resolution. This phase includes validation for plural property names when inline objects/enums are used.
 
 ### Acceptance Criteria:
-- Arrays of scalars → `repeated <scalar>` fields
-- Arrays of `$ref` → `repeated <MessageType>` fields
-- Arrays of inline objects → error if property name ends with 's'/'es'
-- Arrays of inline enums → error if property name ends with 's'/'es'
-- Nested arrays → error
+- [x] Arrays of scalars → `repeated <scalar>` fields
+- [x] Arrays of `$ref` → `repeated <MessageType>` fields
+- [x] Arrays of inline objects → error if property name ends with 's'/'es'
+- [x] Arrays of inline enums → error if property name ends with 's'/'es'
+- [x] Nested arrays → error
 
 ### Changes Required:
 

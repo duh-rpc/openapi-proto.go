@@ -2,36 +2,48 @@ package internal
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 )
 
 // ProtoType returns the proto3 type for an OpenAPI schema.
-// Returns type name and error.
+// Returns type name, whether it's repeated, and error.
 // For inline enums, hoists them to top-level in the context.
-func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context) (string, error) {
-	// Check if it's an enum first
+func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context) (string, bool, error) {
+	// Check if it's an array first
+	if len(schema.Type) > 0 && contains(schema.Type, "array") {
+		itemType, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx)
+		if err != nil {
+			return "", false, err
+		}
+		return itemType, true, nil
+	}
+
+	// Check if it's an enum
 	if isEnumSchema(schema) {
 		// Hoist inline enum to top-level
 		enumName := ToPascalCase(propertyName)
 		_, err := buildEnum(enumName, propProxy, ctx)
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
-		return enumName, nil
+		return enumName, false, nil
 	}
 
 	if len(schema.Type) == 0 {
-		return "", fmt.Errorf("property must have type or $ref")
+		return "", false, fmt.Errorf("property must have type or $ref")
 	}
 
 	if len(schema.Type) > 1 {
-		return "", fmt.Errorf("multi-type properties not supported")
+		return "", false, fmt.Errorf("multi-type properties not supported")
 	}
 
 	typ := schema.Type[0]
 	format := schema.Format
 
-	return MapScalarType(typ, format)
+	scalarType, err := MapScalarType(typ, format)
+	return scalarType, false, err
 }
 
 // MapScalarType maps OpenAPI type+format to proto3 scalar type.
@@ -61,4 +73,84 @@ func MapScalarType(typ, format string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported type: %s", typ)
 	}
+}
+
+// ResolveArrayItemType determines the proto3 type for array items.
+// Returns type name, whether it's repeated, and error.
+// For inline objects/enums: validates property name is not plural.
+func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context) (string, error) {
+	// Check if Items is defined
+	if schema.Items == nil || schema.Items.A == nil {
+		return "", fmt.Errorf("array must have items defined")
+	}
+
+	itemsProxy := schema.Items.A
+	itemsSchema := itemsProxy.Schema()
+	if itemsSchema == nil {
+		if err := itemsProxy.GetBuildError(); err != nil {
+			return "", fmt.Errorf("failed to resolve array items: %w", err)
+		}
+		return "", fmt.Errorf("array items schema is nil")
+	}
+
+	// Check for nested arrays
+	if len(itemsSchema.Type) > 0 && contains(itemsSchema.Type, "array") {
+		return "", fmt.Errorf("nested arrays not supported")
+	}
+
+	// Check if it's a reference
+	if itemsProxy.IsReference() {
+		ref := itemsProxy.GetReference()
+		if ref != "" {
+			// Extract the last segment of the reference path
+			parts := strings.Split(ref, "/")
+			if len(parts) > 0 {
+				return parts[len(parts)-1], nil
+			}
+		}
+		return "", fmt.Errorf("invalid reference format")
+	}
+
+	// Check if it's an inline enum
+	if isEnumSchema(itemsSchema) {
+		// Validate property name is not plural
+		if strings.HasSuffix(propertyName, "es") {
+			return "", fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
+		}
+		if strings.HasSuffix(propertyName, "s") {
+			return "", fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
+		}
+
+		// Hoist inline enum to top-level
+		enumName := ToPascalCase(propertyName)
+		_, err := buildEnum(enumName, itemsProxy, ctx)
+		if err != nil {
+			return "", err
+		}
+		return enumName, nil
+	}
+
+	// Check if it's an inline object
+	if len(itemsSchema.Type) > 0 && contains(itemsSchema.Type, "object") {
+		// Validate property name is not plural
+		if strings.HasSuffix(propertyName, "es") {
+			return "", fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
+		}
+		if strings.HasSuffix(propertyName, "s") {
+			return "", fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
+		}
+
+		// For now, we'll just return an error since nested message support is in Phase 5
+		// This will be enhanced in Phase 5
+		return "", fmt.Errorf("inline objects in arrays not yet supported (Phase 5)")
+	}
+
+	// It's a scalar type
+	if len(itemsSchema.Type) == 0 {
+		return "", fmt.Errorf("array items must have a type")
+	}
+
+	itemType := itemsSchema.Type[0]
+	format := itemsSchema.Format
+	return MapScalarType(itemType, format)
 }
