@@ -2,8 +2,6 @@ module github.com/duh-rpc/openapi-proto.go
 
 go 1.24.7
 
-toolchain go1.24.9
-
 require (
 	github.com/pb33f/libopenapi v0.28.1
 	github.com/stretchr/testify v1.11.1
