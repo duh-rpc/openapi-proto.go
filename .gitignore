@@ -1,0 +1,9 @@
+.idea/
+.vscode/
+__pycache__
+*.pyc
+.DS_Store
+coverage.out
+coverage.html
+*test-data*
+.env
