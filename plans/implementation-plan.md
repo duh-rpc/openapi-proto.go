@@ -579,13 +579,13 @@ Already covered by other tests
 Implement enum type detection and conversion with proto3 conventions: top-level definitions, UNSPECIFIED value at 0, value shifting, and inline enum hoisting.
 
 ### Acceptance Criteria:
-- Top-level enum schemas converted to proto3 enums
-- All enums include `<NAME>_UNSPECIFIED = 0` as first value
-- Original enum values shifted to start at 1
-- Enum values use UPPERCASE_SNAKE_CASE with enum name prefix
-- Inline enums hoisted to top-level
-- Enum ordering: UNSPECIFIED, then original values in order
-- Enums and messages mixed in processing order in output
+- [x] Top-level enum schemas converted to proto3 enums
+- [x] All enums include `<NAME>_UNSPECIFIED = 0` as first value
+- [x] Original enum values shifted to start at 1
+- [x] Enum values use UPPERCASE_SNAKE_CASE with enum name prefix
+- [x] Inline enums hoisted to top-level
+- [x] Enum ordering: UNSPECIFIED, then original values in order
+- [x] Enums and messages mixed in processing order in output
 
 ### Changes Required:
 

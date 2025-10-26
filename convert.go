@@ -44,5 +44,5 @@ func Convert(openapi []byte, packageName string) ([]byte, error) {
 		return nil, err
 	}
 
-	return internal.Generate(packageName, ctx.Messages, ctx.Enums)
+	return internal.Generate(packageName, ctx.Messages, ctx.Enums, ctx.Definitions)
 }

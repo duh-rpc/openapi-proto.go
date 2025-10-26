@@ -10,17 +10,19 @@ import (
 
 // Context holds state during conversion
 type Context struct {
-	Tracker  *NameTracker
-	Messages []*ProtoMessage
-	Enums    []*ProtoEnum
+	Tracker      *NameTracker
+	Messages     []*ProtoMessage
+	Enums        []*ProtoEnum
+	Definitions  []interface{} // Mixed enums and messages in processing order
 }
 
 // NewContext creates a new conversion context
 func NewContext() *Context {
 	return &Context{
-		Tracker:  NewNameTracker(),
-		Messages: []*ProtoMessage{},
-		Enums:    []*ProtoEnum{},
+		Tracker:     NewNameTracker(),
+		Messages:    []*ProtoMessage{},
+		Enums:       []*ProtoEnum{},
+		Definitions: []interface{}{},
 	}
 }
 
@@ -58,6 +60,16 @@ type ProtoEnumValue struct {
 // BuildMessages processes all schemas and returns messages
 func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) error {
 	for _, entry := range entries {
+		// Check if it's an enum schema first
+		schema := entry.Proxy.Schema()
+		if schema != nil && isEnumSchema(schema) {
+			_, err := buildEnum(entry.Name, entry.Proxy, ctx)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		_, err := buildMessage(entry.Name, entry.Proxy, ctx)
 		if err != nil {
 			return err
@@ -98,7 +110,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			}
 
 			protoFieldName := ToSnakeCase(propName)
-			protoType, err := ProtoType(propSchema, propName)
+			protoType, err := ProtoType(propSchema, propName, propProxy, ctx)
 			if err != nil {
 				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
 			}
@@ -121,6 +133,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 	}
 
 	ctx.Messages = append(ctx.Messages, msg)
+	ctx.Definitions = append(ctx.Definitions, msg)
 	return msg, nil
 }
 
@@ -132,4 +145,54 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// isEnumSchema returns true if schema defines an enum
+func isEnumSchema(schema *base.Schema) bool {
+	return len(schema.Enum) > 0
+}
+
+// buildEnum creates a protoEnum from an OpenAPI schema
+func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, error) {
+	schema := proxy.Schema()
+	if schema == nil {
+		if err := proxy.GetBuildError(); err != nil {
+			return nil, fmt.Errorf("schema '%s': failed to resolve schema: %w", name, err)
+		}
+		return nil, fmt.Errorf("schema '%s': schema is nil", name)
+	}
+
+	enumName := ctx.Tracker.UniqueName(ToPascalCase(name))
+
+	enum := &ProtoEnum{
+		Name:        enumName,
+		Description: schema.Description,
+		Values:      []*ProtoEnumValue{},
+	}
+
+	// Add UNSPECIFIED value at 0
+	unspecifiedName := fmt.Sprintf("%s_UNSPECIFIED", strings.ToUpper(ToSnakeCase(enumName)))
+	enum.Values = append(enum.Values, &ProtoEnumValue{
+		Name:   unspecifiedName,
+		Number: 0,
+	})
+
+	// Add original enum values starting at 1
+	for i, value := range schema.Enum {
+		// Extract the actual value from yaml.Node
+		// The Value field contains the string representation
+		var strValue string
+		if value != nil {
+			strValue = value.Value
+		}
+		valueName := ToEnumValueName(enumName, strValue)
+		enum.Values = append(enum.Values, &ProtoEnumValue{
+			Name:   valueName,
+			Number: i + 1,
+		})
+	}
+
+	ctx.Enums = append(ctx.Enums, enum)
+	ctx.Definitions = append(ctx.Definitions, enum)
+	return enum, nil
 }

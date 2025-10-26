@@ -10,22 +10,20 @@ import (
 const protoTemplate = `syntax = "proto3";
 
 package {{.PackageName}};
-{{range .Messages}}
-{{if .Description}}{{formatComment .Description}}{{end}}message {{.Name}} {
-{{range .Fields}}{{if .Description}}  {{formatComment .Description}}{{end}}  {{if .Repeated}}repeated {{end}}{{.Type}} {{.Name}} = {{.Number}}{{if .JSONName}} [json_name = "{{.JSONName}}"]{{end}};
-{{end}}}
-{{end}}`
+{{range .Definitions}}{{renderDefinition .}}{{end}}`
 
 type templateData struct {
 	PackageName string
 	Messages    []*ProtoMessage
 	Enums       []*ProtoEnum
+	Definitions []interface{}
 }
 
-// Generate creates proto3 output from messages and enums
-func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum) ([]byte, error) {
+// Generate creates proto3 output from messages and enums in order
+func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum, definitions []interface{}) ([]byte, error) {
 	funcMap := template.FuncMap{
-		"formatComment": formatCommentForTemplate,
+		"formatComment":    formatCommentForTemplate,
+		"renderDefinition": renderDefinition,
 	}
 
 	tmpl, err := template.New("proto").Funcs(funcMap).Parse(protoTemplate)
@@ -37,6 +35,7 @@ func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum) 
 		PackageName: packageName,
 		Messages:    messages,
 		Enums:       enums,
+		Definitions: definitions,
 	}
 
 	var buf bytes.Buffer
@@ -45,6 +44,67 @@ func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum) 
 	}
 
 	return buf.Bytes(), nil
+}
+
+// renderDefinition renders either an enum or message definition
+func renderDefinition(def interface{}) string {
+	switch d := def.(type) {
+	case *ProtoEnum:
+		return renderEnum(d)
+	case *ProtoMessage:
+		return renderMessage(d)
+	default:
+		return ""
+	}
+}
+
+// renderEnum renders an enum definition
+func renderEnum(enum *ProtoEnum) string {
+	var result strings.Builder
+	result.WriteString("\n")
+
+	if enum.Description != "" {
+		result.WriteString(formatCommentForTemplate(enum.Description))
+	}
+
+	result.WriteString(fmt.Sprintf("enum %s {\n", enum.Name))
+	for _, value := range enum.Values {
+		result.WriteString(fmt.Sprintf("  %s = %d;\n", value.Name, value.Number))
+	}
+	result.WriteString("}\n")
+
+	return result.String()
+}
+
+// renderMessage renders a message definition
+func renderMessage(msg *ProtoMessage) string {
+	var result strings.Builder
+	result.WriteString("\n")
+
+	if msg.Description != "" {
+		result.WriteString(formatCommentForTemplate(msg.Description))
+	}
+
+	result.WriteString(fmt.Sprintf("message %s {\n", msg.Name))
+	for _, field := range msg.Fields {
+		if field.Description != "" {
+			result.WriteString("  ")
+			result.WriteString(formatCommentForTemplate(field.Description))
+		}
+
+		result.WriteString("  ")
+		if field.Repeated {
+			result.WriteString("repeated ")
+		}
+		result.WriteString(fmt.Sprintf("%s %s = %d", field.Type, field.Name, field.Number))
+		if field.JSONName != "" {
+			result.WriteString(fmt.Sprintf(" [json_name = \"%s\"]", field.JSONName))
+		}
+		result.WriteString(";\n")
+	}
+	result.WriteString("}\n")
+
+	return result.String()
 }
 
 // formatCommentForTemplate formats a description as a proto3 comment for use in templates
