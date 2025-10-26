@@ -57,6 +57,8 @@ make lint          # lint all passes
 make coverage      # Generates coverage report showing >80% coverage
 ```
 
+DO NOT RUN `make ci`, as it requires files to be committed, you MUST NOT commit phases unless explicitly asked.
+
 ### Key Discoveries:
 
 **libopenapi API patterns** (from research):

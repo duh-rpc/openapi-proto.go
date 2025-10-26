@@ -112,8 +112,8 @@ package testpkg;
 
 message User {
   string user_id = 1 [json_name = "userId"];
-  string email = 2;
-  int32 age = 3;
+  string email = 2 [json_name = "email"];
+  int32 age = 3 [json_name = "age"];
 }
 `,
 		},
@@ -189,8 +189,8 @@ package testpkg;
 message Order {
   string order_id = 1 [json_name = "orderId"];
   string customer_id = 2 [json_name = "customerId"];
-  double amount = 3;
-  string status = 4;
+  double amount = 3 [json_name = "amount"];
+  string status = 4 [json_name = "status"];
 }
 `
 

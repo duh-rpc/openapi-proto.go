@@ -109,7 +109,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				return nil, fmt.Errorf("schema '%s': property '%s' has nil schema", name, propName)
 			}
 
-			protoFieldName := ToSnakeCase(propName)
+			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx)
 			if err != nil {
 				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
@@ -121,10 +121,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				Number:      fieldNumber,
 				Description: propSchema.Description,
 				Repeated:    repeated,
-			}
-
-			if NeedsJSONName(propName, protoFieldName) {
-				field.JSONName = propName
+				JSONName:    propName, // Always set for consistency and clarity
 			}
 
 			msg.Fields = append(msg.Fields, field)

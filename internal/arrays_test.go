@@ -36,7 +36,7 @@ components:
 package testpkg;
 
 message User {
-  repeated string tags = 1;
+  repeated string tags = 1 [json_name = "tags"];
 }
 `,
 		},
@@ -63,7 +63,7 @@ components:
 package testpkg;
 
 message Numbers {
-  repeated int32 values = 1;
+  repeated int32 values = 1 [json_name = "values"];
 }
 `,
 		},
@@ -90,7 +90,7 @@ components:
 package testpkg;
 
 message Data {
-  repeated int64 ids = 1;
+  repeated int64 ids = 1 [json_name = "ids"];
 }
 `,
 		},
@@ -116,7 +116,7 @@ components:
 package testpkg;
 
 message Flags {
-  repeated bool enabled = 1;
+  repeated bool enabled = 1 [json_name = "enabled"];
 }
 `,
 		},
@@ -155,11 +155,11 @@ components:
 package testpkg;
 
 message Address {
-  string street = 1;
+  string street = 1 [json_name = "street"];
 }
 
 message User {
-  repeated Address addresses = 1;
+  repeated Address addresses = 1 [json_name = "addresses"];
 }
 `
 	result, err := conv.Convert([]byte(given), "testpkg")
@@ -193,7 +193,7 @@ components:
 package testpkg;
 
 message Company {
-  repeated Contact contact = 1;
+  repeated Contact contact = 1 [json_name = "contact"];
 }
 `
 	result, err := conv.Convert([]byte(singular), "testpkg")
@@ -234,7 +234,7 @@ enum Level {
 }
 
 message Config {
-  repeated Level level = 1;
+  repeated Level level = 1 [json_name = "level"];
 }
 `
 	result, err := conv.Convert([]byte(singular), "testpkg")

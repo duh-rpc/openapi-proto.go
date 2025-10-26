@@ -163,8 +163,8 @@ enum Status {
 }
 
 message User {
-  string name = 1;
-  Status status = 2;
+  string name = 1 [json_name = "name"];
+  Status status = 2 [json_name = "status"];
 }
 `
 
@@ -211,8 +211,8 @@ enum Role {
 }
 
 message User {
-  Status status = 1;
-  Role role = 2;
+  Status status = 1 [json_name = "status"];
+  Role role = 2 [json_name = "role"];
 }
 `
 
@@ -255,7 +255,7 @@ enum Status {
 }
 
 message User {
-  string name = 1;
+  string name = 1 [json_name = "name"];
 }
 
 enum Priority {

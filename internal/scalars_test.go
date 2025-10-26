@@ -94,7 +94,7 @@ components:
 package testpkg;
 
 message Thing {
-  int32 count = 1;
+  int32 count = 1 [json_name = "count"];
 }
 `,
 		},
@@ -118,7 +118,7 @@ components:
 package testpkg;
 
 message Thing {
-  double value = 1;
+  double value = 1 [json_name = "value"];
 }
 `,
 		},
