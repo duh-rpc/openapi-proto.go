@@ -83,14 +83,19 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 	schema := proxy.Schema()
 	if schema == nil {
 		if err := proxy.GetBuildError(); err != nil {
-			return nil, fmt.Errorf("schema '%s': failed to resolve schema: %w", name, err)
+			return nil, SchemaError(name, fmt.Sprintf("failed to resolve schema: %v", err))
 		}
-		return nil, fmt.Errorf("schema '%s': schema is nil", name)
+		return nil, SchemaError(name, "schema is nil")
+	}
+
+	// Validate schema for unsupported features at top-level
+	if err := validateTopLevelSchema(schema, name); err != nil {
+		return nil, err
 	}
 
 	// Check if it's an object type
 	if len(schema.Type) == 0 || !contains(schema.Type, "object") {
-		return nil, fmt.Errorf("schema '%s': only objects and enums supported at top level", name)
+		return nil, SchemaError(name, "only objects and enums supported at top level")
 	}
 
 	msg := &ProtoMessage{
@@ -106,13 +111,17 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 		for propName, propProxy := range schema.Properties.FromOldest() {
 			propSchema := propProxy.Schema()
 			if propSchema == nil {
-				return nil, fmt.Errorf("schema '%s': property '%s' has nil schema", name, propName)
+				return nil, PropertyError(name, propName, "has nil schema")
 			}
 
 			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
-				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
+				// Don't wrap with PropertyError if the error already contains the property name
+				if strings.Contains(err.Error(), fmt.Sprintf("property '%s'", propName)) {
+					return nil, fmt.Errorf("schema '%s': %w", name, err)
+				}
+				return nil, PropertyError(name, propName, err.Error())
 			}
 
 			// For inline objects/enums, description goes to the nested type, not the field
@@ -160,9 +169,14 @@ func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, 
 	schema := proxy.Schema()
 	if schema == nil {
 		if err := proxy.GetBuildError(); err != nil {
-			return nil, fmt.Errorf("schema '%s': failed to resolve schema: %w", name, err)
+			return nil, SchemaError(name, fmt.Sprintf("failed to resolve schema: %v", err))
 		}
-		return nil, fmt.Errorf("schema '%s': schema is nil", name)
+		return nil, SchemaError(name, "schema is nil")
+	}
+
+	// Validate schema for unsupported features at top-level
+	if err := validateTopLevelSchema(schema, name); err != nil {
+		return nil, err
 	}
 
 	enumName := ctx.Tracker.UniqueName(ToPascalCase(name))
@@ -236,12 +250,16 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 		for propName, propProxy := range schema.Properties.FromOldest() {
 			propSchema := propProxy.Schema()
 			if propSchema == nil {
-				return nil, fmt.Errorf("property '%s' has nil schema", propName)
+				return nil, fmt.Errorf("property '%s': has nil schema", propName)
 			}
 
 			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
+				// Don't wrap if the error already contains the property name
+				if strings.Contains(err.Error(), fmt.Sprintf("property '%s'", propName)) {
+					return nil, err
+				}
 				return nil, fmt.Errorf("property '%s': %w", propName, err)
 			}
 
@@ -271,4 +289,30 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 	}
 
 	return msg, nil
+}
+
+// validateTopLevelSchema checks for unsupported features at the schema level
+func validateTopLevelSchema(schema *base.Schema, schemaName string) error {
+	if schema == nil {
+		return nil
+	}
+
+	// Check for schema composition features
+	if len(schema.AllOf) > 0 {
+		return UnsupportedSchemaError(schemaName, "allOf")
+	}
+
+	if len(schema.AnyOf) > 0 {
+		return UnsupportedSchemaError(schemaName, "anyOf")
+	}
+
+	if len(schema.OneOf) > 0 {
+		return UnsupportedSchemaError(schemaName, "oneOf")
+	}
+
+	if schema.Not != nil {
+		return UnsupportedSchemaError(schemaName, "not")
+	}
+
+	return nil
 }

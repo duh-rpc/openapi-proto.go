@@ -12,6 +12,11 @@ import (
 // For inline enums and objects, hoists them appropriately in the context.
 // parentMsg is used for nested messages (can be nil for top-level).
 func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, bool, error) {
+	// Validate schema for unsupported features
+	if err := validateSchema(schema, propertyName); err != nil {
+		return "", false, err
+	}
+
 	// Check if it's a reference first
 	if propProxy.IsReference() {
 		ref := propProxy.GetReference()
@@ -210,4 +215,30 @@ func extractReferenceName(ref string) (string, error) {
 	}
 
 	return name, nil
+}
+
+// validateSchema checks for unsupported OpenAPI features
+func validateSchema(schema *base.Schema, propertyName string) error {
+	if schema == nil {
+		return nil
+	}
+
+	// Check for schema composition features
+	if len(schema.AllOf) > 0 {
+		return fmt.Errorf("property '%s' uses 'allOf' which is not supported", propertyName)
+	}
+
+	if len(schema.AnyOf) > 0 {
+		return fmt.Errorf("property '%s' uses 'anyOf' which is not supported", propertyName)
+	}
+
+	if len(schema.OneOf) > 0 {
+		return fmt.Errorf("property '%s' uses 'oneOf' which is not supported", propertyName)
+	}
+
+	if schema.Not != nil {
+		return fmt.Errorf("property '%s' uses 'not' which is not supported", propertyName)
+	}
+
+	return nil
 }

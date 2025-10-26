@@ -1011,10 +1011,10 @@ func TestConvertNullableIgnored(t *testing.T)
 Implement comprehensive error handling for all unsupported OpenAPI features with clear, contextual error messages.
 
 ### Acceptance Criteria:
-- All unsupported features return clear errors with schema/property context
-- Input validation errors are actionable
-- Error messages use consistent format with single quotes
-- All error test scenarios pass
+- [x] All unsupported features return clear errors with schema/property context
+- [x] Input validation errors are actionable
+- [x] Error messages use consistent format with single quotes
+- [x] All error test scenarios pass
 
 ### Changes Required:
 
