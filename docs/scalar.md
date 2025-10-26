@@ -30,9 +30,9 @@ The following table shows how OpenAPI types and formats map to proto3 scalar typ
 
 ## Field Naming Convention
 
-### Proto Field Names: Always snake_case
+### Proto Field Names: Preserved from OpenAPI
 
-All proto3 field names are converted to `snake_case`:
+Field names are preserved from the OpenAPI schema when they meet proto3 syntax requirements:
 
 ```yaml
 # OpenAPI
@@ -48,25 +48,25 @@ properties:
 ```protobuf
 // Proto3
 message User {
-  string user_id = 1 [json_name = "userId"];
-  int32 h_t_t_p_status = 2 [json_name = "HTTPStatus"];
+  string userId = 1 [json_name = "userId"];
+  int32 HTTPStatus = 2 [json_name = "HTTPStatus"];
   string email = 3 [json_name = "email"];
 }
 ```
 
-### Snake Case Conversion Algorithm
+### Field Name Sanitization
 
-The conversion follows a simple letter-by-letter algorithm:
-- Each uppercase letter becomes lowercase with an underscore prefix (except the first character)
-- Existing underscores, numbers, and other characters are preserved as-is
-- **No special acronym detection** (e.g., `HTTPStatus` → `h_t_t_p_status`)
+Invalid characters are replaced with underscores to meet proto3 syntax requirements:
+- Hyphens, dots, and spaces become underscores
+- Field names must start with an ASCII letter (A-Z, a-z)
+- Field names can contain ASCII letters, digits (0-9), and underscores (_)
 
 Examples:
-- `userId` → `user_id`
-- `HTTPStatus` → `h_t_t_p_status`
-- `user2Id` → `user2_id`
-- `email` → `email`
-- `user_id` → `user_id` (already snake_case)
+- `userId` → `userId` (preserved)
+- `HTTPStatus` → `HTTPStatus` (preserved)
+- `user_id` → `user_id` (preserved)
+- `status-code` → `status_code` (hyphen replaced)
+- `user.name` → `user_name` (dot replaced)
 
 ### JSON Name Annotations: Always Present
 
@@ -77,15 +77,15 @@ Examples:
 
 ```protobuf
 message User {
-  string user_id = 1 [json_name = "userId"];      // Preserves camelCase
-  string email = 2 [json_name = "email"];         // Explicit even when redundant
-  string user_name = 3 [json_name = "user_name"]; // Preserves snake_case
+  string userId = 1 [json_name = "userId"];       // Preserved camelCase
+  string email = 2 [json_name = "email"];         // Explicit even when simple
+  string user_name = 3 [json_name = "user_name"]; // Preserved snake_case
 }
 ```
 
 ### Why json_name Is Always Included
 
-Even when the OpenAPI field name is already snake_case (matching the proto field name), the `json_name` annotation is still included. This provides:
+The `json_name` annotation is always included for all fields. This provides:
 
 - **Explicit documentation** of JSON serialization behavior
 - **Consistent proto file structure** (all fields have the same format)
@@ -97,12 +97,12 @@ When the proto3 file is processed by `protoc` to generate Go code, the following
 
 ### Proto Field to Go Struct Field
 
-The protoc compiler automatically converts snake_case proto field names to PascalCase Go struct field names:
+The protoc compiler automatically converts proto field names to PascalCase Go struct field names:
 
 ```protobuf
 // Proto3
 message User {
-  string user_id = 1 [json_name = "userId"];
+  string userId = 1 [json_name = "userId"];
   int32 age = 2 [json_name = "age"];
 }
 ```
@@ -110,13 +110,13 @@ message User {
 ```go
 // Generated Go Code
 type User struct {
-	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId" json:"userId,omitempty"`
+	UserId string `protobuf:"bytes,1,opt,name=userId,json=userId" json:"userId,omitempty"`
 	Age    int32  `protobuf:"varint,2,opt,name=age,json=age" json:"age,omitempty"`
 }
 ```
 
 **Key Points:**
-- Proto field `user_id` becomes Go struct field `UserId` (exported, PascalCase)
+- Proto field `userId` becomes Go struct field `UserId` (exported, PascalCase)
 - JSON marshaling uses the `json_name` value: `userId` for the first field, `age` for the second
 - The `protobuf` struct tag preserves the original proto field name
 
@@ -172,10 +172,10 @@ syntax = "proto3";
 package userapi;
 
 message User {
-  string user_id = 1 [json_name = "userId"];
-  string email_address = 2 [json_name = "emailAddress"];
+  string userId = 1 [json_name = "userId"];
+  string emailAddress = 2 [json_name = "emailAddress"];
   int32 age = 3 [json_name = "age"];
-  int32 h_t_t_p_status = 4 [json_name = "HTTPStatus"];
+  int32 HTTPStatus = 4 [json_name = "HTTPStatus"];
   string created_at = 5 [json_name = "created_at"];
 }
 ```
@@ -183,10 +183,10 @@ message User {
 ### Generated Go Code
 ```go
 type User struct {
-	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId" json:"userId,omitempty"`
-	EmailAddress  string `protobuf:"bytes,2,opt,name=email_address,json=emailAddress" json:"emailAddress,omitempty"`
+	UserId        string `protobuf:"bytes,1,opt,name=userId,json=userId" json:"userId,omitempty"`
+	EmailAddress  string `protobuf:"bytes,2,opt,name=emailAddress,json=emailAddress" json:"emailAddress,omitempty"`
 	Age           int32  `protobuf:"varint,3,opt,name=age,json=age" json:"age,omitempty"`
-	HTTPStatus    int32  `protobuf:"varint,4,opt,name=h_t_t_p_status,json=HTTPStatus" json:"HTTPStatus,omitempty"`
+	HTTPStatus    int32  `protobuf:"varint,4,opt,name=HTTPStatus,json=HTTPStatus" json:"HTTPStatus,omitempty"`
 	CreatedAt     string `protobuf:"bytes,5,opt,name=created_at,json=created_at" json:"created_at,omitempty"`
 }
 ```
@@ -203,8 +203,8 @@ type User struct {
 ```
 
 Notice how:
-- Proto fields are all snake_case: `user_id`, `email_address`, `h_t_t_p_status`, etc.
-- Go struct fields are all PascalCase: `UserId`, `EmailAddress`, `HTTPStatus`, etc.
+- Proto fields preserve original names: `userId`, `emailAddress`, `HTTPStatus`, `created_at`
+- Go struct fields are all PascalCase: `UserId`, `EmailAddress`, `HTTPStatus`, `CreatedAt`
 - JSON keys match the original OpenAPI names via `json_name` annotations
 
 ## Best Practices
@@ -231,12 +231,12 @@ Notice how:
 
 ### Why is my field named differently in Go?
 
-Protoc automatically converts snake_case proto fields to PascalCase Go fields. This is standard protoc behavior and cannot be changed.
+Protoc automatically converts proto fields to PascalCase Go fields. This is standard protoc behavior and cannot be changed.
 
-### Why does my JSON use snake_case instead of camelCase?
+### Why does my JSON use different naming than expected?
 
-Check the `json_name` annotation in your proto file. The JSON key comes from `json_name`, not from the OpenAPI property name or Go struct field name.
+Check the `json_name` annotation in your proto file. The JSON key comes from `json_name`, which preserves the original OpenAPI field name.
 
 ### What about acronyms like HTTP, ID, URL?
 
-The converter uses a simple letter-by-letter algorithm with no acronym detection. `HTTPStatus` becomes `h_t_t_p_status` in proto, but protoc will generate `HTTPStatus` in Go (capitalizing each letter after an underscore).
+The converter preserves acronyms as-is from your OpenAPI schema. If your OpenAPI field is `HTTPStatus`, it will be `HTTPStatus` in the proto file and `HTTPStatus` in Go.

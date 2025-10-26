@@ -11,6 +11,15 @@ import (
 // It takes OpenAPI specification bytes (YAML or JSON) and a protobuf package name,
 // and returns the generated proto3 file content as bytes.
 //
+// Field names are preserved from the OpenAPI schema when they meet proto3 syntax
+// requirements. Invalid characters (hyphens, dots, spaces) are replaced with
+// underscores. All fields include json_name annotations for correct JSON mapping.
+//
+// Examples:
+//   - HTTPStatus → HTTPStatus [json_name = "HTTPStatus"]
+//   - userId → userId [json_name = "userId"]
+//   - status-code → status_code [json_name = "status-code"]
+//
 // The function validates inputs, parses the OpenAPI document, extracts schemas,
 // and generates corresponding proto3 message definitions.
 //

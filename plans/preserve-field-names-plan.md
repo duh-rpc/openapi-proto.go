@@ -473,20 +473,21 @@ func TestConvertTrailingInvalidChars(t *testing.T)
 
 ---
 
-## Phase 3: Update AllOf Handling
+## Phase 3: Update AllOf Handling - ✅ COMPLETE (N/A)
 
 ### Overview
 Update the `buildAllOfMergedMessage` function to use the new field name sanitization. This function has a separate code path for processing fields from allOf merged schemas.
 
+**STATUS**: This phase is not applicable. The codebase intentionally does not support `allOf` per the original implementation plan. The library returns clear error messages when `allOf` is encountered (both at top-level and in properties). Since `allOf` schemas are rejected before any field processing occurs, there is no field name handling to update. The existing error tests verify proper error messages are returned.
+
 ### Acceptance Criteria:
-- AllOf merged properties use SanitizeFieldName
-- Error handling for invalid field names in allOf schemas
-- Existing allOf tests updated with new field name expectations
-- AllOf name conflict resolution works with preserved names
+- ✅ AllOf error handling verified - returns "uses 'allOf' which is not supported"
+- ✅ Existing allOf tests pass (TestUnsupportedAllOf)
+- ✅ No regressions in error handling
 
 ### Changes Required:
 
-#### 1. Update AllOf Builder
+#### 1. Update AllOf Builder - ✅ N/A
 **File**: `internal/builder.go`
 **Changes**: Update field name handling in buildAllOfMergedMessage
 
@@ -525,45 +526,33 @@ func TestConvertAllOfFieldNames(t *testing.T)
 - Mirror the pattern from regular buildMessage
 - Ensure consistent behavior across both code paths
 
-#### 2. Update AllOf Tests
-**File**: `internal/composition_test.go` (if exists) or relevant test file
-**Changes**: Update allOf test expectations
+#### 2. Update AllOf Tests - ✅ N/A
+**File**: `internal/errors_test.go`
+**Changes**: Verified allOf error tests
 
-**Function Responsibilities**:
-- Find existing allOf tests
-- Update expected field names to be preserved
-- Verify error handling for invalid field names
-
-**Testing Requirements**:
-Update existing allOf tests
-
-**Test Objectives**:
-- AllOf merged fields preserve original names
-- Field name conflicts resolved correctly
-- Invalid characters handled
-
-**Context for Implementation**:
-- Search for allOf test cases
-- Update systematically like other tests
-- Ensure comprehensive coverage
+**Verification**:
+- TestUnsupportedAllOf tests both top-level and property-level allOf usage
+- Both test cases verify proper error message: "uses 'allOf' which is not supported"
+- Tests pass successfully with current implementation
+- No field name updates needed since allOf is not processed
 
 ---
 
-## Phase 4: Update Documentation
+## Phase 4: Update Documentation - ✅ COMPLETE
 
 ### Overview
 Update all documentation to reflect the new field name preservation behavior. This includes README, godoc comments, and any supplementary documentation.
 
 ### Acceptance Criteria:
-- README.md updated with new naming behavior
-- README includes breaking change notice and migration guidance
-- Godoc comments updated
-- Examples show preserved field names
-- Supplementary documentation updated
+- ✅ README.md updated with new naming behavior
+- ✅ README includes breaking change notice and migration guidance
+- ✅ Godoc comments updated
+- ✅ Examples show preserved field names
+- ✅ Supplementary documentation updated
 
 ### Changes Required:
 
-#### 1. Update README Naming Section
+#### 1. Update README Naming Section - ✅ COMPLETE
 **File**: `README.md`
 **Changes**: Rewrite naming conventions section
 
@@ -636,7 +625,7 @@ None - documentation only
 - Reference proto3 spec and style guide
 - Explain both technical and usability rationale
 
-#### 2. Update Godoc Comments
+#### 2. Update Godoc Comments - ✅ COMPLETE
 **File**: `convert.go` and `internal/naming.go`
 **Changes**: Update function documentation
 
@@ -675,7 +664,7 @@ None - documentation only
 - Document error conditions
 - Keep concise but informative
 
-#### 3. Update Supplementary Docs
+#### 3. Update Supplementary Docs - ✅ COMPLETE
 **File**: `docs/scalar.md` and other docs files
 **Changes**: Update field name examples
 
@@ -692,6 +681,15 @@ None - documentation only
 - Check all files in docs/ directory
 - Update systematically
 - Verify no outdated examples remain
+
+**Completed Changes**:
+- Updated README.md with comprehensive field name preservation section
+- Added breaking change notice with migration guidance
+- Updated convert.go godoc with examples
+- SanitizeFieldName godoc already correct
+- Updated docs/scalar.md with preserved field name examples
+- Updated docs/objects.md naming reference
+- All tests still pass
 
 ---
 

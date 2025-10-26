@@ -82,10 +82,10 @@ package myapi;
 // A user account
 message User {
   // Unique user identifier
-  string user_id = 1 [json_name = "userId"];
+  string userId = 1 [json_name = "userId"];
   string email = 2 [json_name = "email"];
   int32 age = 3 [json_name = "age"];
-  bool is_active = 4 [json_name = "isActive"];
+  bool isActive = 4 [json_name = "isActive"];
 }
 ```
 
@@ -156,20 +156,53 @@ message User {
 
 ## Naming Conventions
 
-### Field Names: camelCase → snake_case
+### Field Names: Preservation
 
-The library uses a simple letter-by-letter algorithm to convert field names from camelCase to snake_case:
+The library preserves original OpenAPI field names when they're valid proto3 syntax:
+- `HTTPStatus` → `HTTPStatus` (preserved)
+- `userId` → `userId` (preserved)
+- `user_id` → `user_id` (preserved)
 
-- Each uppercase letter becomes lowercase with an underscore prefix (except the first character)
-- **No special acronym detection** - each letter is handled individually
+Invalid characters are replaced with underscores:
+- `status-code` → `status_code` (hyphen → underscore)
+- `user.name` → `user_name` (dot → underscore)
+- `first name` → `first_name` (space → underscore)
 
-Examples:
-- `userId` → `user_id`
-- `HTTPStatus` → `h_t_t_p_status` (not `http_status`)
-- `http2Protocol` → `http2_protocol`
-- `email` → `email` (no conversion needed)
+All fields include a `json_name` annotation to explicitly map to the original OpenAPI field name.
 
-All fields include a `json_name` annotation to preserve the original OpenAPI field name for JSON serialization.
+#### Proto3 Field Name Requirements
+
+Field names must:
+- Start with an ASCII letter (A-Z or a-z) - non-ASCII letters like `ñ` are not allowed
+- Contain only ASCII letters, digits (0-9), and underscores (_)
+- Field names starting with digits or underscores will cause errors
+- Field names that are proto3 reserved keywords (like `message`, `enum`, `package`) will cause protoc compilation errors - the library does not detect or prevent these
+
+**Note on Reserved Keywords:** Proto3 has reserved keywords like `message`, `enum`, `service`, `package`, `import`, `option`, etc. If your OpenAPI schema has field names that match these keywords, the generated proto file will fail to compile with protoc. This is intentional - the library lets protoc handle keyword validation rather than maintaining a keyword list that might change across proto versions.
+
+#### Best Practices
+
+While proto3 syntax allows mixed-case field names, the [Protocol Buffers style guide](https://protobuf.dev/programming-guides/style/) recommends snake_case for consistency across languages. If you control your OpenAPI schema, consider using snake_case field names to align with proto3 conventions.
+
+#### BREAKING CHANGE Notice
+
+**This represents a breaking change from previous library behavior.**
+
+**Previous behavior:**
+- Field names were converted to snake_case: `HTTPStatus` → `h_t_t_p_status`
+- Simple letter-by-letter conversion with no acronym detection
+
+**New behavior:**
+- Field names are preserved when valid: `HTTPStatus` → `HTTPStatus`
+- Only invalid characters are replaced: `status-code` → `status_code`
+
+**Migration:**
+If you have existing code that references generated proto field names, you will need to update those references. For example:
+- Proto references: `message.h_t_t_p_status` → `message.HTTPStatus`
+- Any tooling parsing .proto files needs adjustment for new field names
+
+**Rationale:**
+Preserving original names provides more intuitive mapping between OpenAPI and proto, respects your naming choices, and avoids surprising transformations like `HTTPStatus` → `h_t_t_p_status`.
 
 ### Message Names: PascalCase
 
@@ -346,7 +379,7 @@ message User_2 {
 ## Best Practices
 
 1. **Use singular property names** for arrays with inline objects/enums, or use `$ref` to reference named schemas
-2. **Avoid acronyms in field names** if you need specific casing in proto3 (e.g., prefer `httpStatus` over `HTTPStatus`)
+2. **Consider snake_case field names** in your OpenAPI schema to align with proto3 style guide conventions
 3. **Use descriptions** liberally - they become useful comments in the generated proto
 4. **Order schemas intentionally** in your OpenAPI YAML - the output order will match
 5. **Test with protoc** after generation to catch any proto3 reserved keywords

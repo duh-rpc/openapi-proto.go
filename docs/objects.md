@@ -224,7 +224,7 @@ Nested message names are derived from property names:
 | `billingAddress`          | `BillingAddress`                 |
 | `office`                  | `Office`                         |
 
-The standard snake_case → PascalCase conversion is applied (see [Naming Conventions](naming.md) for details).
+Property names are converted to PascalCase for message names (see main README for naming conventions).
 
 ## Plural Name Restriction
 
