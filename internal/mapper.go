@@ -12,6 +12,28 @@ import (
 // For inline enums and objects, hoists them appropriately in the context.
 // parentMsg is used for nested messages (can be nil for top-level).
 func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, bool, error) {
+	// Check if it's a reference first
+	if propProxy.IsReference() {
+		ref := propProxy.GetReference()
+
+		// Try to resolve the reference (libopenapi handles internal refs automatically)
+		resolvedSchema := propProxy.Schema()
+		if resolvedSchema == nil {
+			// Check if there's a build error (e.g., external reference)
+			if err := propProxy.GetBuildError(); err != nil {
+				return "", false, fmt.Errorf("property '%s' references external file or unresolvable reference: %w", propertyName, err)
+			}
+			return "", false, fmt.Errorf("property '%s' has unresolved reference", propertyName)
+		}
+
+		// Extract the schema name from the reference
+		typeName, err := extractReferenceName(ref)
+		if err != nil {
+			return "", false, fmt.Errorf("property '%s': %w", propertyName, err)
+		}
+		return typeName, false, nil
+	}
+
 	// Check if it's an array first
 	if len(schema.Type) > 0 && contains(schema.Type, "array") {
 		itemType, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx, parentMsg)
@@ -167,4 +189,25 @@ func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *b
 	itemType := itemsSchema.Type[0]
 	format := itemsSchema.Format
 	return MapScalarType(itemType, format)
+}
+
+// extractReferenceName extracts the schema name from a reference string.
+// Example: "#/components/schemas/Address" → "Address"
+func extractReferenceName(ref string) (string, error) {
+	if ref == "" {
+		return "", fmt.Errorf("reference string is empty")
+	}
+
+	// Split by '/' and take the last segment
+	parts := strings.Split(ref, "/")
+	if len(parts) == 0 {
+		return "", fmt.Errorf("invalid reference format: %s", ref)
+	}
+
+	name := parts[len(parts)-1]
+	if name == "" {
+		return "", fmt.Errorf("reference has empty name segment: %s", ref)
+	}
+
+	return name, nil
 }

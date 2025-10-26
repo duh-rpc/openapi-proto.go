@@ -838,10 +838,10 @@ message ParentMessage {
 Implement `$ref` reference detection and resolution using libopenapi's automatic resolution. External references will fail during schema resolution with build errors.
 
 ### Acceptance Criteria:
-- Internal references (`#/components/schemas/Type`) use referenced type name
-- Multiple fields can reference same schema
-- External file references cause build error → wrapped with clear message
-- Reference resolution happens automatically via libopenapi
+- [x] Internal references (`#/components/schemas/Type`) use referenced type name
+- [x] Multiple fields can reference same schema
+- [x] External file references cause build error → wrapped with clear message
+- [x] Reference resolution happens automatically via libopenapi
 
 ### Changes Required:
 
