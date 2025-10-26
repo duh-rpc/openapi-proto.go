@@ -23,7 +23,7 @@ A paragraph describing what this change intends to acheive
 
 ### Functional Testing Example
 ```go
-import conv "github.com/duh-rpc/openapi-proto"
+import conv "github.com/duh-rpc/openapi-proto.go"
 
 func TestScenarioName(t *testing.T) {
   for _, test := range []struct {

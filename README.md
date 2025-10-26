@@ -2,6 +2,11 @@
 
 A Go library that converts OpenAPI 3.0 schema definitions to Protocol Buffer 3 (proto3) format.
 
+[![Go Version](https://img.shields.io/github/go-mod/go-version/duh-rpc/openapi-proto.go)](https://golang.org/dl/)
+[![CI Status](https://github.com/duh-rpc/openapi-proto.go/workflows/CI/badge.svg)](https://github.com/duh-rpc/openapi-proto.go/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Report Card](https://goreportcard.com/badge/github.com/duh-rpc/openapi-proto.go)](https://goreportcard.com/report/github.com/duh-rpc/openapi-proto.go)
+
 ## Overview
 
 This library parses OpenAPI 3.0 specifications and generates corresponding `.proto` files with proper type mappings, JSON field name annotations, and protobuf conventions. It's designed for projects that need to support both OpenAPI and protobuf interfaces.
@@ -9,7 +14,7 @@ This library parses OpenAPI 3.0 specifications and generates corresponding `.pro
 ## Installation
 
 ```bash
-go get github.com/duh-rpc/openapi-proto
+go get github.com/duh-rpc/openapi-proto.go
 ```
 
 ## Usage
@@ -23,7 +28,7 @@ import (
     "fmt"
     "os"
 
-    conv "github.com/duh-rpc/openapi-proto"
+    conv "github.com/duh-rpc/openapi-proto.go"
 )
 
 func main() {

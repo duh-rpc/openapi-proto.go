@@ -3,7 +3,7 @@ package internal_test
 import (
 	"testing"
 
-	conv "github.com/duh-rpc/openapi-proto"
+	conv "github.com/duh-rpc/openapi-proto.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

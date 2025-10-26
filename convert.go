@@ -3,8 +3,8 @@ package conv
 import (
 	"fmt"
 
-	"github.com/duh-rpc/openapi-proto/internal"
-	"github.com/duh-rpc/openapi-proto/internal/parser"
+	"github.com/duh-rpc/openapi-proto.go/internal"
+	"github.com/duh-rpc/openapi-proto.go/internal/parser"
 )
 
 // Convert converts OpenAPI 3.0 schemas to Protocol Buffer 3 format.
