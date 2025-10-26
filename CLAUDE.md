@@ -23,27 +23,31 @@ A paragraph describing what this change intends to acheive
 
 ### Functional Testing Example
 ```go
-func TestCreateUser(t *testing.T) {
-    d, err := api.SpawnDaemon(context.Background(), api.DaemonConfig{})
-    require.NoError(t, err)
-    defer d.Shutdown(context.Background())
+import conv "github.com/duh-rpc/openapi-proto"
 
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-
-    c := d.MustClient()
-
-    var resp pb.CreateUserResponse
-    err = c.CreateUser(ctx, &pb.CreateUserRequest{
-        Name:  "Alice",
-        Email: "alice@example.com",
-        Age:   30,
-    }, &resp)
-    require.NoError(t, err)
-    assert.NotEmpty(t, resp.UserId)
-    assert.Equal(t, "alice@example.com", resp.Email)
-    assert.Equal(t, "Alice", resp.Name)
-    assert.NotNil(t, resp.CreatedAt)
+func TestScenarioName(t *testing.T) {
+  for _, test := range []struct {
+    name     string
+    given    string
+    expected string
+  }{
+    {
+      name:     "simple string field",
+      given:    `<OpenAPI YAML for string field>`,
+      expected: `<Expected Proto3 output for string>`,
+    },
+    {
+      name:     "integer field with validation",
+      given:    `<OpenAPI YAML for integer field>`,
+      expected: `<Expected Proto3 output for integer>`,
+    },
+  } {
+    t.Run(test.name, func(t *testing.T) {
+      result, err := conv.Convert([]byte(test.given), "testpkg")
+      require.NoError(t, err)
+      assert.Equal(t, test.expected, string(result))
+    })
+  }
 }
 ```
 

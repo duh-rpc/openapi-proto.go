@@ -634,12 +634,28 @@ Tests should follow a **functional/end-to-end style**: Given an OpenAPI spec inp
 Each test should follow the pattern:
 ```go
 func TestScenarioName(t *testing.T) {
-    given := `<OpenAPI YAML>`
-    expected := `<Expected Proto3 output>`
-
-    result, err := Convert([]byte(given), "testpkg")
-    require.NoError(t, err)
-    assert.Equal(t, expected, string(result))
+  for _, test := range []struct {
+    name     string
+    given    string
+    expected string
+  }{
+    {
+      name:     "simple string field",
+      given:    `<OpenAPI YAML for string field>`,
+      expected: `<Expected Proto3 output for string>`,
+    },
+    {
+      name:     "integer field with validation",
+      given:    `<OpenAPI YAML for integer field>`,
+      expected: `<Expected Proto3 output for integer>`,
+    },
+  } {
+    t.Run(test.name, func(t *testing.T) {
+      result, err := Convert([]byte(test.given), "testpkg")
+      require.NoError(t, err)
+      assert.Equal(t, test.expected, string(result))
+    })
+  }
 }
 ```
 
