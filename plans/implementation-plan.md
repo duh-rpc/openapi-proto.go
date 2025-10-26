@@ -961,15 +961,15 @@ func TestConvertMultiLineDescription(t *testing.T)
 Finalize output generation by explicitly ignoring OpenAPI `required` and `nullable` directives, and polish the proto3 formatting.
 
 ### Acceptance Criteria:
-- `required` array ignored (not read or processed)
-- `nullable: true` ignored (not read or processed)
-- No `optional` keyword in output
-- No wrapper types
-- Clean, well-formatted proto3 output
+- [x] `required` array ignored (not read or processed)
+- [x] `nullable: true` ignored (not read or processed)
+- [x] No `optional` keyword in output
+- [x] No wrapper types
+- [x] Clean, well-formatted proto3 output
 
 ### Changes Required:
 
-#### 1. Builder Enhancement
+#### 1. Builder Enhancement ✅
 **File**: `internal/builder/builder.go`
 **Changes**: Document ignored fields
 
@@ -993,7 +993,7 @@ func TestConvertNullableIgnored(t *testing.T)
 **Context for Implementation**:
 - Reference spec REQ-011 (lines 119-125): Required/nullable ignored
 
-#### 2. Generator Polish
+#### 2. Generator Polish ✅
 **File**: `internal/generator/generator.go`
 **Changes**: Final formatting
 
