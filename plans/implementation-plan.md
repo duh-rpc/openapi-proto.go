@@ -892,11 +892,11 @@ func TestConvertExternalReference(t *testing.T)
 Extract OpenAPI `description` fields and generate proto3 comments above corresponding messages and fields.
 
 ### Acceptance Criteria:
-- Schema descriptions → `//` comments above messages
-- Property descriptions → `//` comments above fields
-- Multi-line descriptions have each line prefixed with `//`
-- Empty descriptions result in no comment
-- Blank lines in descriptions preserved as `//`
+- [x] Schema descriptions → `//` comments above messages
+- [x] Property descriptions → `//` comments above fields
+- [x] Multi-line descriptions have each line prefixed with `//`
+- [x] Empty descriptions result in no comment
+- [x] Blank lines in descriptions preserved as `//`
 
 ### Changes Required:
 

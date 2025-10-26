@@ -87,8 +87,7 @@ func renderMessageWithIndent(msg *ProtoMessage, indent string) string {
 	result.WriteString("\n")
 
 	if msg.Description != "" {
-		result.WriteString(indent)
-		result.WriteString(formatCommentForTemplate(msg.Description))
+		result.WriteString(formatComment(msg.Description, indent))
 	}
 
 	result.WriteString(indent)
@@ -105,9 +104,7 @@ func renderMessageWithIndent(msg *ProtoMessage, indent string) string {
 	// Render fields
 	for _, field := range msg.Fields {
 		if field.Description != "" {
-			result.WriteString(indent)
-			result.WriteString("  ")
-			result.WriteString(formatCommentForTemplate(field.Description))
+			result.WriteString(formatComment(field.Description, indent+"  "))
 		}
 
 		result.WriteString(indent)
@@ -130,6 +127,11 @@ func renderMessageWithIndent(msg *ProtoMessage, indent string) string {
 
 // formatCommentForTemplate formats a description as a proto3 comment for use in templates
 func formatCommentForTemplate(description string) string {
+	return formatComment(description, "")
+}
+
+// formatComment formats a description as a proto3 comment with indentation
+func formatComment(description, indent string) string {
 	if strings.TrimSpace(description) == "" {
 		return ""
 	}
@@ -139,6 +141,7 @@ func formatCommentForTemplate(description string) string {
 
 	for _, line := range lines {
 		trimmed := strings.TrimRight(line, " \t")
+		result.WriteString(indent)
 		if trimmed == "" {
 			result.WriteString("//\n")
 		} else {
