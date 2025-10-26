@@ -103,7 +103,7 @@ func SanitizeFieldName(name string) (string, error) {
 
 	// Check first character must be ASCII letter
 	firstChar := rune(name[0])
-	if !((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z')) {
+	if (firstChar < 'a' || firstChar > 'z') && (firstChar < 'A' || firstChar > 'Z') {
 		if firstChar >= '0' && firstChar <= '9' {
 			return "", fmt.Errorf("field name must start with a letter, got '%s'", name)
 		}
