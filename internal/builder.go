@@ -10,10 +10,10 @@ import (
 
 // Context holds state during conversion
 type Context struct {
-	Tracker      *NameTracker
-	Messages     []*ProtoMessage
-	Enums        []*ProtoEnum
-	Definitions  []interface{} // Mixed enums and messages in processing order
+	Tracker     *NameTracker
+	Messages    []*ProtoMessage
+	Enums       []*ProtoEnum
+	Definitions []interface{} // Mixed enums and messages in processing order
 }
 
 // NewContext creates a new conversion context

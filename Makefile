@@ -1,4 +1,4 @@
-.PHONY: test lint tidy coverage ci clean
+.PHONY: test lint tidy fmt coverage ci clean
 
 test:
 	go test -v ./...
@@ -9,7 +9,10 @@ lint:
 tidy:
 	go mod tidy && git diff --exit-code
 
-ci: tidy lint test
+fmt:
+	go fmt ./... && git diff --exit-code
+
+ci: tidy fmt lint test
 	@echo
 	@echo "\033[32mEVERYTHING PASSED!\033[0m"
 
