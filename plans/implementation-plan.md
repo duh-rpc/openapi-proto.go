@@ -764,15 +764,15 @@ func TestConvertArrayPluralName(t *testing.T)
 Implement generation of nested message definitions for inline object properties. This phase includes plural name validation similar to arrays.
 
 ### Acceptance Criteria:
-- Inline object properties generate nested message definitions
-- Nested messages named via property name → PascalCase
-- Error if property name ends with 's'/'es' (potential plural)
-- Deep nesting works correctly
-- Nested message field numbering independent (starts at 1)
+- [x] Inline object properties generate nested message definitions
+- [x] Nested messages named via property name → PascalCase
+- [x] Error if property name ends with 's'/'es' (potential plural)
+- [x] Deep nesting works correctly
+- [x] Nested message field numbering independent (starts at 1)
 
 ### Changes Required:
 
-#### 1. Message Builder Enhancement
+#### 1. Message Builder Enhancement ✅
 **File**: `internal/builder/builder.go`
 **Changes**: Handle inline objects
 
@@ -810,7 +810,7 @@ func TestConvertNestedPluralName(t *testing.T)
 - Reference spec nested example (lines 389-421)
 - Design decision: Error on plural property names (same as arrays)
 
-#### 2. Generator Enhancement
+#### 2. Generator Enhancement ✅
 **File**: `internal/generator/generator.go`
 **Changes**: Format nested messages
 

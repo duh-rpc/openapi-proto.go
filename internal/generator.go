@@ -78,20 +78,39 @@ func renderEnum(enum *ProtoEnum) string {
 
 // renderMessage renders a message definition
 func renderMessage(msg *ProtoMessage) string {
+	return renderMessageWithIndent(msg, "")
+}
+
+// renderMessageWithIndent renders a message definition with custom indentation
+func renderMessageWithIndent(msg *ProtoMessage, indent string) string {
 	var result strings.Builder
 	result.WriteString("\n")
 
 	if msg.Description != "" {
+		result.WriteString(indent)
 		result.WriteString(formatCommentForTemplate(msg.Description))
 	}
 
+	result.WriteString(indent)
 	result.WriteString(fmt.Sprintf("message %s {\n", msg.Name))
+
+	// Render nested messages first (with proper indentation)
+	for _, nested := range msg.Nested {
+		nestedContent := renderMessageWithIndent(nested, indent+"  ")
+		// Remove the leading newline from nested message since we're inside parent
+		result.WriteString(strings.TrimPrefix(nestedContent, "\n"))
+		result.WriteString("\n")
+	}
+
+	// Render fields
 	for _, field := range msg.Fields {
 		if field.Description != "" {
+			result.WriteString(indent)
 			result.WriteString("  ")
 			result.WriteString(formatCommentForTemplate(field.Description))
 		}
 
+		result.WriteString(indent)
 		result.WriteString("  ")
 		if field.Repeated {
 			result.WriteString("repeated ")
@@ -102,6 +121,8 @@ func renderMessage(msg *ProtoMessage) string {
 		}
 		result.WriteString(";\n")
 	}
+
+	result.WriteString(indent)
 	result.WriteString("}\n")
 
 	return result.String()

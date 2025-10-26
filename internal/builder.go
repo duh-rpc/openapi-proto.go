@@ -110,16 +110,22 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			}
 
 			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
-			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx)
+			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				return nil, fmt.Errorf("schema '%s': property '%s': %w", name, propName, err)
+			}
+
+			// For inline objects/enums, description goes to the nested type, not the field
+			fieldDescription := propSchema.Description
+			if len(propSchema.Type) > 0 && (contains(propSchema.Type, "object") || isEnumSchema(propSchema)) {
+				fieldDescription = ""
 			}
 
 			field := &ProtoField{
 				Name:        protoFieldName,
 				Type:        protoType,
 				Number:      fieldNumber,
-				Description: propSchema.Description,
+				Description: fieldDescription,
 				Repeated:    repeated,
 				JSONName:    propName, // Always set for consistency and clarity
 			}
@@ -192,4 +198,77 @@ func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, 
 	ctx.Enums = append(ctx.Enums, enum)
 	ctx.Definitions = append(ctx.Definitions, enum)
 	return enum, nil
+}
+
+// buildNestedMessage creates nested message from inline object property
+func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (*ProtoMessage, error) {
+	schema := proxy.Schema()
+	if schema == nil {
+		if err := proxy.GetBuildError(); err != nil {
+			return nil, fmt.Errorf("failed to resolve nested object: %w", err)
+		}
+		return nil, fmt.Errorf("nested object schema is nil")
+	}
+
+	// Validate property name is not plural
+	// Simple check: error if ends with 's' or 'es' (no intelligent singularization)
+	if strings.HasSuffix(propertyName, "es") {
+		return nil, fmt.Errorf("cannot derive message name from property '%s'; use singular form or $ref", propertyName)
+	}
+	if strings.HasSuffix(propertyName, "s") {
+		return nil, fmt.Errorf("cannot derive message name from property '%s'; use singular form or $ref", propertyName)
+	}
+
+	// Derive nested message name via PascalCase
+	msgName := ToPascalCase(propertyName)
+	msgName = ctx.Tracker.UniqueName(msgName)
+
+	msg := &ProtoMessage{
+		Name:        msgName,
+		Description: schema.Description,
+		Fields:      []*ProtoField{},
+		Nested:      []*ProtoMessage{},
+	}
+
+	// Process properties in YAML order
+	if schema.Properties != nil {
+		fieldNumber := 1
+		for propName, propProxy := range schema.Properties.FromOldest() {
+			propSchema := propProxy.Schema()
+			if propSchema == nil {
+				return nil, fmt.Errorf("property '%s' has nil schema", propName)
+			}
+
+			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
+			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
+			if err != nil {
+				return nil, fmt.Errorf("property '%s': %w", propName, err)
+			}
+
+			// For inline objects/enums, description goes to the nested type, not the field
+			fieldDescription := propSchema.Description
+			if len(propSchema.Type) > 0 && (contains(propSchema.Type, "object") || isEnumSchema(propSchema)) {
+				fieldDescription = ""
+			}
+
+			field := &ProtoField{
+				Name:        protoFieldName,
+				Type:        protoType,
+				Number:      fieldNumber,
+				Description: fieldDescription,
+				Repeated:    repeated,
+				JSONName:    propName,
+			}
+
+			msg.Fields = append(msg.Fields, field)
+			fieldNumber++
+		}
+	}
+
+	// Add to parent's nested messages
+	if parentMsg != nil {
+		parentMsg.Nested = append(parentMsg.Nested, msg)
+	}
+
+	return msg, nil
 }

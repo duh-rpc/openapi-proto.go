@@ -168,7 +168,6 @@ message User {
 }
 
 func TestArrayOfInlineObjects(t *testing.T) {
-	t.Skip("Inline objects in arrays will be implemented in Phase 5")
 	// Test array with singular property name (should work)
 	singular := `
 openapi: 3.0.0
@@ -193,6 +192,10 @@ components:
 package testpkg;
 
 message Company {
+  message Contact {
+    string name = 1 [json_name = "name"];
+  }
+
   repeated Contact contact = 1 [json_name = "contact"];
 }
 `

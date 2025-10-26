@@ -9,15 +9,26 @@ import (
 
 // ProtoType returns the proto3 type for an OpenAPI schema.
 // Returns type name, whether it's repeated, and error.
-// For inline enums, hoists them to top-level in the context.
-func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context) (string, bool, error) {
+// For inline enums and objects, hoists them appropriately in the context.
+// parentMsg is used for nested messages (can be nil for top-level).
+func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, bool, error) {
 	// Check if it's an array first
 	if len(schema.Type) > 0 && contains(schema.Type, "array") {
-		itemType, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx)
+		itemType, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx, parentMsg)
 		if err != nil {
 			return "", false, err
 		}
 		return itemType, true, nil
+	}
+
+	// Check if it's an inline object
+	if len(schema.Type) > 0 && contains(schema.Type, "object") {
+		// Build nested message
+		nestedMsg, err := buildNestedMessage(propertyName, propProxy, ctx, parentMsg)
+		if err != nil {
+			return "", false, err
+		}
+		return nestedMsg.Name, false, nil
 	}
 
 	// Check if it's an enum
@@ -78,7 +89,7 @@ func MapScalarType(typ, format string) (string, error) {
 // ResolveArrayItemType determines the proto3 type for array items.
 // Returns type name, whether it's repeated, and error.
 // For inline objects/enums: validates property name is not plural.
-func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context) (string, error) {
+func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, error) {
 	// Check if Items is defined
 	if schema.Items == nil || schema.Items.A == nil {
 		return "", fmt.Errorf("array must have items defined")
@@ -140,9 +151,12 @@ func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *b
 			return "", fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
 		}
 
-		// For now, we'll just return an error since nested message support is in Phase 5
-		// This will be enhanced in Phase 5
-		return "", fmt.Errorf("inline objects in arrays not yet supported (Phase 5)")
+		// Build nested message for inline object in array
+		nestedMsg, err := buildNestedMessage(propertyName, itemsProxy, ctx, parentMsg)
+		if err != nil {
+			return "", err
+		}
+		return nestedMsg.Name, nil
 	}
 
 	// It's a scalar type
