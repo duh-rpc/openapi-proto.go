@@ -119,12 +119,12 @@ package testpkg;
 
 message Order {
   message ShippingInfo {
-    string street_name = 1 [json_name = "streetName"];
-    string zip_code = 2 [json_name = "zipCode"];
+    string streetName = 1 [json_name = "streetName"];
+    string zipCode = 2 [json_name = "zipCode"];
   }
 
-  string order_id = 1 [json_name = "orderId"];
-  ShippingInfo shipping_info = 2 [json_name = "shippingInfo"];
+  string orderId = 1 [json_name = "orderId"];
+  ShippingInfo shippingInfo = 2 [json_name = "shippingInfo"];
 }
 `,
 		},

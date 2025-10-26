@@ -34,7 +34,7 @@ components:
 package testpkg;
 
 message User {
-  string user_id = 1 [json_name = "userId"];
+  string userId = 1 [json_name = "userId"];
 }
 `,
 		},
@@ -63,7 +63,7 @@ message User {
 `,
 		},
 		{
-			name: "HTTPStatus gets json_name annotation (no acronym detection)",
+			name: "HTTPStatus preserved (field name preservation)",
 			given: `openapi: 3.0.0
 info:
   title: Test API
@@ -82,7 +82,7 @@ components:
 package testpkg;
 
 message Response {
-  int32 h_t_t_p_status = 1 [json_name = "HTTPStatus"];
+  int32 HTTPStatus = 1 [json_name = "HTTPStatus"];
 }
 `,
 		},
@@ -122,9 +122,9 @@ components:
 package testpkg;
 
 message MixedNaming {
-  string user_id = 1 [json_name = "userId"];
-  string user_id_2 = 2 [json_name = "user_id"];
-  int32 h_t_t_p_status = 3 [json_name = "HTTPStatus"];
+  string userId = 1 [json_name = "userId"];
+  string user_id = 2 [json_name = "user_id"];
+  int32 HTTPStatus = 3 [json_name = "HTTPStatus"];
   int32 status_code = 4 [json_name = "status_code"];
   string email = 5 [json_name = "email"];
 }
@@ -132,4 +132,425 @@ message MixedNaming {
 	result, err := conv.Convert([]byte(given), "testpkg")
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
+}
+
+func TestConvertFieldNameSanitization(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "hyphen replaced with underscore",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        status-code:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Response {
+  string status_code = 1 [json_name = "status-code"];
+}
+`,
+		},
+		{
+			name: "dot replaced with underscore",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        user.name:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message User {
+  string user_name = 1 [json_name = "user.name"];
+}
+`,
+		},
+		{
+			name: "space replaced with underscore",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Person:
+      type: object
+      properties:
+        first name:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Person {
+  string first_name = 1 [json_name = "first name"];
+}
+`,
+		},
+		{
+			name: "multiple invalid chars collapsed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        user--name..test:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string user_name_test = 1 [json_name = "user--name..test"];
+}
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), "testpkg")
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result))
+		})
+	}
+}
+
+func TestConvertInvalidFieldNames(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		given   string
+		wantErr string
+	}{
+		{
+			name: "field starting with digit",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Invalid:
+      type: object
+      properties:
+        2ndValue:
+          type: string
+`,
+			wantErr: "field name must start with a letter",
+		},
+		{
+			name: "field starting with underscore",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Invalid:
+      type: object
+      properties:
+        _private:
+          type: string
+`,
+			wantErr: "field name cannot start with underscore",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := conv.Convert([]byte(test.given), "testpkg")
+			require.Error(t, err)
+			require.ErrorContains(t, err, test.wantErr)
+		})
+	}
+}
+
+func TestConvertMixedValidAndInvalidChars(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "mixed case with hyphen",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        user-ID:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string user_ID = 1 [json_name = "user-ID"];
+}
+`,
+		},
+		{
+			name: "uppercase with hyphen",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        HTTP-Status:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string HTTP_Status = 1 [json_name = "HTTP-Status"];
+}
+`,
+		},
+		{
+			name: "dots in version string",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        api.v2.endpoint:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string api_v2_endpoint = 1 [json_name = "api.v2.endpoint"];
+}
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), "testpkg")
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result))
+		})
+	}
+}
+
+func TestConvertConsecutiveInvalidChars(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "consecutive hyphens collapsed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        status---code:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string status_code = 1 [json_name = "status---code"];
+}
+`,
+		},
+		{
+			name: "consecutive dots collapsed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        user...name:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string user_name = 1 [json_name = "user...name"];
+}
+`,
+		},
+		{
+			name: "consecutive spaces collapsed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        first  name:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string first_name = 1 [json_name = "first  name"];
+}
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), "testpkg")
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result))
+		})
+	}
+}
+
+func TestConvertTrailingInvalidChars(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "trailing hyphen trimmed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        status-:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string status = 1 [json_name = "status-"];
+}
+`,
+		},
+		{
+			name: "trailing underscore preserved",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        user_:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string user_ = 1 [json_name = "user_"];
+}
+`,
+		},
+		{
+			name: "complex trailing chars sanitized and trimmed",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      type: object
+      properties:
+        name-_-:
+          type: string
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+message Test {
+  string name_ = 1 [json_name = "name-_-"];
+}
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), "testpkg")
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result))
+		})
+	}
 }

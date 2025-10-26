@@ -204,9 +204,9 @@ components:
 package testpkg;
 
 message Record {
-  int32 optional_int = 1 [json_name = "optionalInt"];
-  string optional_string = 2 [json_name = "optionalString"];
-  bool optional_bool = 3 [json_name = "optionalBool"];
+  int32 optionalInt = 1 [json_name = "optionalInt"];
+  string optionalString = 2 [json_name = "optionalString"];
+  bool optionalBool = 3 [json_name = "optionalBool"];
 }
 `,
 		},
@@ -236,7 +236,7 @@ package testpkg;
 
 message Mixed {
   string nullable = 1 [json_name = "nullable"];
-  string non_nullable = 2 [json_name = "nonNullable"];
+  string nonNullable = 2 [json_name = "nonNullable"];
   string unspecified = 3 [json_name = "unspecified"];
 }
 `,

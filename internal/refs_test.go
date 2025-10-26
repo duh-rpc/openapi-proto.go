@@ -83,8 +83,8 @@ message Address {
 }
 
 message User {
-  Address home_address = 1 [json_name = "homeAddress"];
-  Address work_address = 2 [json_name = "workAddress"];
+  Address homeAddress = 1 [json_name = "homeAddress"];
+  Address workAddress = 2 [json_name = "workAddress"];
 }
 `
 

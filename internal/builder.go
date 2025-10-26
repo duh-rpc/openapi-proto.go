@@ -114,7 +114,11 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 				return nil, PropertyError(name, propName, "has nil schema")
 			}
 
-			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
+			sanitizedName, err := SanitizeFieldName(propName)
+			if err != nil {
+				return nil, PropertyError(name, propName, err.Error())
+			}
+			protoFieldName := ctx.Tracker.UniqueName(sanitizedName)
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap with PropertyError if the error already contains the property name
@@ -253,7 +257,11 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 				return nil, fmt.Errorf("property '%s': has nil schema", propName)
 			}
 
-			protoFieldName := ctx.Tracker.UniqueName(ToSnakeCase(propName))
+			sanitizedName, err := SanitizeFieldName(propName)
+			if err != nil {
+				return nil, fmt.Errorf("property '%s': %w", propName, err)
+			}
+			protoFieldName := ctx.Tracker.UniqueName(sanitizedName)
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap if the error already contains the property name

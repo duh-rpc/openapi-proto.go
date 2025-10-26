@@ -140,7 +140,7 @@ Replace the ToSnakeCase conversion with a sanitization function that only modifi
 
 ### Changes Required:
 
-#### 1. Field Name Sanitizer
+#### 1. Field Name Sanitizer - ✅ COMPLETE
 **File**: `internal/naming.go`
 **Changes**: Add new sanitization function
 
@@ -230,7 +230,7 @@ func TestSanitizeInvalidStart(t *testing.T)
 - Only modify when syntax requires it
 - Reference proto3 spec for valid characters
 
-#### 2. Update Builder Usage
+#### 2. Update Builder Usage - ✅ COMPLETE
 **File**: `internal/builder.go`
 **Changes**: Replace ToSnakeCase with SanitizeFieldName
 
@@ -262,7 +262,7 @@ Already covered by test cases in Phase 1.1
 - Also check buildAllOfMergedMessage (line 256) for same pattern
 - Ensure both locations updated
 
-#### 3. Remove NeedsJSONName Function
+#### 3. Remove NeedsJSONName Function - ✅ COMPLETE
 **File**: `internal/naming.go`
 **Changes**: Remove NeedsJSONName function (line 91-94)
 
@@ -289,7 +289,7 @@ None - function is not used in current codebase (builder always sets JSONName)
 - If used, replace calls with `true` literal
 - Generator already handles json_name output unconditionally
 
-#### 4. Keep ToSnakeCase for Other Uses
+#### 4. Keep ToSnakeCase for Other Uses - ✅ COMPLETE
 **File**: `internal/naming.go`
 **Changes**: Keep ToSnakeCase for enum names and message names
 
@@ -314,7 +314,7 @@ None - existing enum tests should still pass
 
 ---
 
-## Phase 2: Update Existing Tests
+## Phase 2: Update Existing Tests - ✅ COMPLETE
 
 ### Overview
 Update all existing tests to expect preserved field names instead of snake_case conversions. Add new test cases for invalid character handling and edge cases.
@@ -328,7 +328,7 @@ Update all existing tests to expect preserved field names instead of snake_case 
 
 ### Changes Required:
 
-#### 1. Update Naming Tests
+#### 1. Update Naming Tests - ✅ COMPLETE
 **File**: `internal/naming_test.go`
 **Changes**: Update test expectations
 
@@ -371,7 +371,7 @@ func TestConvertInvalidFieldNames(t *testing.T)
 - Update expected proto output strings
 - Error test cases should check error message content
 
-#### 2. Update Scalar Type Tests
+#### 2. Update Scalar Type Tests - ✅ COMPLETE
 **File**: `internal/scalars_test.go`
 **Changes**: Update field name expectations
 
@@ -396,7 +396,7 @@ None - updating existing tests
 - Update field name expectations systematically
 - Maintain json_name annotations in all expected output
 
-#### 3. Update Name Conflict Tests
+#### 3. Update Name Conflict Tests - ✅ COMPLETE
 **File**: `internal/naming_test.go`
 **Changes**: Update TestConvertAlwaysIncludesJsonName
 
@@ -433,7 +433,7 @@ Update the existing test case
 - Fewer conflicts means cleaner proto output
 - Still need NameTracker for true duplicates
 
-#### 4. Add New Edge Case Tests
+#### 4. Add New Edge Case Tests - ✅ COMPLETE
 **File**: `internal/naming_test.go`
 **Changes**: Add comprehensive edge case coverage
 

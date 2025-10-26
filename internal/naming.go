@@ -88,9 +88,71 @@ func ToEnumValueName(enumName, value string) string {
 	return fmt.Sprintf("%s_%s", upperEnum, upperValue)
 }
 
-// NeedsJSONName returns true if proto field name differs from original.
-func NeedsJSONName(original, protoField string) bool {
-	return ToSnakeCase(original) != original
+// SanitizeFieldName sanitizes an OpenAPI field name for proto3 syntax.
+// Preserves the original name structure when valid, only modifying to meet
+// proto3 requirements:
+//   - Must start with a letter (A-Z, a-z)
+//   - Can contain letters, digits, underscores
+//   - Invalid characters replaced with underscores
+//
+// Returns error if name cannot be sanitized (e.g., starts with digit).
+func SanitizeFieldName(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("field name cannot be empty")
+	}
+
+	// Check first character must be ASCII letter
+	firstChar := rune(name[0])
+	if !((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z')) {
+		if firstChar >= '0' && firstChar <= '9' {
+			return "", fmt.Errorf("field name must start with a letter, got '%s'", name)
+		}
+		if firstChar == '_' {
+			return "", fmt.Errorf("field name cannot start with underscore, got '%s'", name)
+		}
+		return "", fmt.Errorf("field name must start with a letter, got '%s'", name)
+	}
+
+	var result strings.Builder
+	result.Grow(len(name))
+
+	var lastWritten rune
+	for i, r := range name {
+		if isValidProtoFieldChar(r) {
+			result.WriteRune(r)
+			lastWritten = r
+		} else {
+			// Replace invalid char with underscore, but avoid consecutive underscores
+			if lastWritten != '_' {
+				result.WriteRune('_')
+				lastWritten = '_'
+			}
+		}
+
+		// Track if this is the last character
+		if i == len(name)-1 {
+			// Trim trailing underscore only if it was added by sanitization
+			// (i.e., the original char was invalid)
+			if !isValidProtoFieldChar(r) && lastWritten == '_' {
+				s := result.String()
+				if len(s) > 0 && s[len(s)-1] == '_' {
+					return s[:len(s)-1], nil
+				}
+			}
+		}
+	}
+
+	sanitized := result.String()
+	if sanitized == "" {
+		return "", fmt.Errorf("field name contains no valid characters")
+	}
+
+	return sanitized, nil
+}
+
+// isValidProtoFieldChar returns true if character is valid in proto3 field name.
+func isValidProtoFieldChar(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_'
 }
 
 // NameTracker tracks used names and generates unique names when conflicts occur.

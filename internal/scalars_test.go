@@ -61,16 +61,16 @@ components:
 package testpkg;
 
 message AllTypes {
-  int32 int32_field = 1 [json_name = "int32Field"];
-  int64 int64_field = 2 [json_name = "int64Field"];
-  float float_field = 3 [json_name = "floatField"];
-  double double_field = 4 [json_name = "doubleField"];
-  string string_field = 5 [json_name = "stringField"];
-  bytes bytes_field = 6 [json_name = "bytesField"];
-  bytes binary_field = 7 [json_name = "binaryField"];
-  string date_field = 8 [json_name = "dateField"];
-  string date_time_field = 9 [json_name = "dateTimeField"];
-  bool bool_field = 10 [json_name = "boolField"];
+  int32 int32Field = 1 [json_name = "int32Field"];
+  int64 int64Field = 2 [json_name = "int64Field"];
+  float floatField = 3 [json_name = "floatField"];
+  double doubleField = 4 [json_name = "doubleField"];
+  string stringField = 5 [json_name = "stringField"];
+  bytes bytesField = 6 [json_name = "bytesField"];
+  bytes binaryField = 7 [json_name = "binaryField"];
+  string dateField = 8 [json_name = "dateField"];
+  string dateTimeField = 9 [json_name = "dateTimeField"];
+  bool boolField = 10 [json_name = "boolField"];
 }
 `,
 		},
