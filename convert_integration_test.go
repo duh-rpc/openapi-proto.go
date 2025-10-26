@@ -198,3 +198,166 @@ message Order {
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
+
+func TestConvertCompleteExample(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: E-Commerce API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    OrderStatus:
+      type: string
+      description: Status of an order
+      enum:
+        - pending
+        - confirmed
+        - shipped
+        - delivered
+        - cancelled
+
+    Address:
+      type: object
+      description: Shipping or billing address
+      properties:
+        street:
+          type: string
+          description: Street address
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+
+    Product:
+      type: object
+      description: Product in the catalog
+      properties:
+        productId:
+          type: string
+          description: Unique product identifier
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        inStock:
+          type: boolean
+        category:
+          type: string
+          enum:
+            - electronics
+            - clothing
+            - books
+            - home
+
+    OrderItem:
+      type: object
+      description: Item in an order
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        quantity:
+          type: integer
+          format: int32
+        unitPrice:
+          type: number
+          format: double
+
+    Order:
+      type: object
+      description: Customer order
+      properties:
+        orderId:
+          type: string
+          description: Unique order identifier
+        customerId:
+          type: string
+        item:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        totalAmount:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+`
+	expected := `syntax = "proto3";
+
+package ecommerce;
+
+// Status of an order
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_CONFIRMED = 2;
+  ORDER_STATUS_SHIPPED = 3;
+  ORDER_STATUS_DELIVERED = 4;
+  ORDER_STATUS_CANCELLED = 5;
+}
+
+// Shipping or billing address
+message Address {
+  // Street address
+  string street = 1 [json_name = "street"];
+  string city = 2 [json_name = "city"];
+  string state = 3 [json_name = "state"];
+  string zip_code = 4 [json_name = "zipCode"];
+  string country = 5 [json_name = "country"];
+}
+
+enum Category {
+  CATEGORY_UNSPECIFIED = 0;
+  CATEGORY_ELECTRONICS = 1;
+  CATEGORY_CLOTHING = 2;
+  CATEGORY_BOOKS = 3;
+  CATEGORY_HOME = 4;
+}
+
+// Product in the catalog
+message Product {
+  // Unique product identifier
+  string product_id = 1 [json_name = "productId"];
+  string name = 2 [json_name = "name"];
+  string description = 3 [json_name = "description"];
+  double price = 4 [json_name = "price"];
+  bool in_stock = 5 [json_name = "inStock"];
+  Category category = 6 [json_name = "category"];
+}
+
+// Item in an order
+message OrderItem {
+  Product product = 1 [json_name = "product"];
+  int32 quantity = 2 [json_name = "quantity"];
+  double unit_price = 3 [json_name = "unitPrice"];
+}
+
+// Customer order
+message Order {
+  // Unique order identifier
+  string order_id = 1 [json_name = "orderId"];
+  string customer_id = 2 [json_name = "customerId"];
+  repeated OrderItem item = 3 [json_name = "item"];
+  OrderStatus status = 4 [json_name = "status"];
+  Address shipping_address = 5 [json_name = "shippingAddress"];
+  double total_amount = 6 [json_name = "totalAmount"];
+  string created_at = 7 [json_name = "createdAt"];
+}
+`
+
+	result, err := conv.Convert([]byte(given), "ecommerce")
+	require.NoError(t, err)
+	assert.Equal(t, expected, string(result))
+}

@@ -31,11 +31,25 @@ func ToSnakeCase(s string) string {
 	return result.String()
 }
 
-// ToPascalCase converts snake_case/camelCase to PascalCase.
-// Examples: user_id → UserId, shippingAddress → ShippingAddress
+// ToPascalCase converts snake_case/camelCase/ALLCAPS to PascalCase.
+// Examples: user_id → UserId, shippingAddress → ShippingAddress, USER → User
 func ToPascalCase(s string) string {
 	if s == "" {
 		return ""
+	}
+
+	// Check if the string is all uppercase (no lowercase letters)
+	isAllCaps := true
+	hasUnderscore := false
+	for _, r := range s {
+		if r == '_' {
+			hasUnderscore = true
+			continue
+		}
+		if unicode.IsLower(r) {
+			isAllCaps = false
+			break
+		}
 	}
 
 	var result strings.Builder
@@ -52,7 +66,13 @@ func ToPascalCase(s string) string {
 			result.WriteRune(unicode.ToUpper(r))
 			capitalizeNext = false
 		} else {
-			result.WriteRune(r)
+			// Only lowercase if the entire string was all caps (like "USER")
+			// For camelCase (like "OrderStatus"), preserve the original casing
+			if isAllCaps && !hasUnderscore {
+				result.WriteRune(unicode.ToLower(r))
+			} else {
+				result.WriteRune(r)
+			}
 		}
 	}
 

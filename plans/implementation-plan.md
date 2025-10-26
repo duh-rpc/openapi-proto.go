@@ -1094,11 +1094,11 @@ func validateSchema(schema *base.Schema, schemaName, propertyName string) error
 Complete the implementation by ensuring name tracking works throughout, handle all edge cases, and add comprehensive integration tests.
 
 ### Acceptance Criteria:
-- Duplicate message/enum names get numeric suffixes (`_2`, `_3`)
-- Name tracking works across all generated types
-- Complete real-world integration test passes
-- All 30 test cases from spec pass
-- >80% test coverage
+- [x] Duplicate message/enum names get numeric suffixes (`_2`, `_3`)
+- [x] Name tracking works across all generated types
+- [x] Complete real-world integration test passes
+- [x] All 30 test cases from spec pass
+- [x] >80% test coverage
 
 ### Changes Required:
 

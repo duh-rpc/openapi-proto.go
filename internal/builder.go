@@ -99,7 +99,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 	}
 
 	msg := &ProtoMessage{
-		Name:        ToPascalCase(name),
+		Name:        ctx.Tracker.UniqueName(ToPascalCase(name)),
 		Description: schema.Description,
 		Fields:      []*ProtoField{},
 		Nested:      []*ProtoMessage{},
