@@ -322,17 +322,17 @@ func TestConvertExtractSchemas(t *testing.T)
 Implement naming conversion logic and basic scalar type mapping. This establishes the foundation for generating proto3 identifiers and handling simple types.
 
 ### Acceptance Criteria:
-- camelCase → snake_case conversion works (simple algorithm: each uppercase → lowercase + underscore)
-- Property names → PascalCase for message names works
-- Enum value naming (UPPERCASE_SNAKE_CASE with prefix) works
-- Duplicate name detection and suffix generation works
-- `json_name` detection logic works
-- OpenAPI scalar types map to proto3 types correctly
-- Basic proto3 messages with scalar fields generate successfully
+- [x] camelCase → snake_case conversion works (simple algorithm: each uppercase → lowercase + underscore)
+- [x] Property names → PascalCase for message names works
+- [x] Enum value naming (UPPERCASE_SNAKE_CASE with prefix) works
+- [x] Duplicate name detection and suffix generation works
+- [x] `json_name` detection logic works
+- [x] OpenAPI scalar types map to proto3 types correctly
+- [x] Basic proto3 messages with scalar fields generate successfully
 
 ### Changes Required:
 
-#### 1. Naming Converter
+#### 1. Naming Converter ✅
 **File**: `internal/naming/naming.go`
 **Changes**: Implement name conversion utilities
 
@@ -400,7 +400,7 @@ func TestConvertNameConflicts(t *testing.T)
 - Design decision: Simple letter-by-letter snake_case (no acronym detection)
 - **IMPORTANT**: Document this naming behavior in README/godoc
 
-#### 2. Type Mapper
+#### 2. Type Mapper ✅
 **File**: `internal/mapper/mapper.go`
 **Changes**: Implement scalar type mapping
 
@@ -447,7 +447,7 @@ func TestConvertScalarTypes(t *testing.T)
 - Reference spec type mapping table (lines 240-258)
 - Design decision: Multi-type not supported (error)
 
-#### 3. Message Builder
+#### 3. Message Builder ✅
 **File**: `internal/builder/builder.go`
 **Changes**: Build proto3 message definitions
 
@@ -522,7 +522,7 @@ func TestConvertJSONNameAnnotation(t *testing.T)
 - Use `schema.Properties.FromOldest()` for iteration
 - `schema.Type` is `[]string`, check if it contains "object"
 
-#### 4. Proto Generator
+#### 4. Proto Generator ✅
 **File**: `internal/generator/generator.go`
 **Changes**: Generate proto3 output
 

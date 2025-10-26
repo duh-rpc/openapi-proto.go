@@ -2,6 +2,9 @@ package conv
 
 import (
 	"fmt"
+
+	"github.com/duh-rpc/openapi-proto/internal/builder"
+	"github.com/duh-rpc/openapi-proto/internal/generator"
 	"github.com/duh-rpc/openapi-proto/internal/parser"
 )
 
@@ -31,15 +34,16 @@ func Convert(openapi []byte, packageName string) ([]byte, error) {
 		return nil, err
 	}
 
-	_, err = doc.Schemas()
+	schemas, err := doc.Schemas()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Build messages and enums from schemas
-	// TODO: Generate proto3 output
+	ctx := builder.NewContext()
+	err = builder.BuildMessages(schemas, ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	// For now, return minimal valid proto3
-	output := fmt.Sprintf("syntax = \"proto3\";\n\npackage %s;\n", packageName)
-	return []byte(output), nil
+	return generator.Generate(packageName, ctx.Messages, ctx.Enums)
 }
