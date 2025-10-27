@@ -66,5 +66,5 @@ func Convert(openapi []byte, opts ConvertOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	return internal.Generate(opts.PackageName, opts.PackagePath, ctx.Messages, ctx.Enums, ctx.Definitions, ctx.UsesTimestamp)
+	return internal.Generate(opts.PackageName, opts.PackagePath, ctx)
 }

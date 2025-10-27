@@ -27,7 +27,7 @@ type templateData struct {
 }
 
 // Generate creates proto3 output from messages and enums in order
-func Generate(packageName string, packagePath string, messages []*ProtoMessage, enums []*ProtoEnum, definitions []interface{}, usesTimestamp bool) ([]byte, error) {
+func Generate(packageName string, packagePath string, ctx *Context) ([]byte, error) {
 	funcMap := template.FuncMap{
 		"formatComment":    formatCommentForTemplate,
 		"renderDefinition": renderDefinition,
@@ -42,10 +42,10 @@ func Generate(packageName string, packagePath string, messages []*ProtoMessage, 
 
 	data := templateData{
 		PackageName:   packageName,
-		Messages:      messages,
-		Enums:         enums,
-		Definitions:   definitions,
-		UsesTimestamp: usesTimestamp,
+		Messages:      ctx.Messages,
+		Enums:         ctx.Enums,
+		Definitions:   ctx.Definitions,
+		UsesTimestamp: ctx.UsesTimestamp,
 		GoPackage:     goPackage,
 	}
 
