@@ -10,17 +10,24 @@ import (
 const protoTemplate = `syntax = "proto3";
 
 package {{.PackageName}};
-{{range .Definitions}}{{renderDefinition .}}{{end}}`
+{{if .UsesTimestamp}}
+import "google/protobuf/timestamp.proto";
+{{end}}
+option go_package = "{{.GoPackage}}";
+{{range .Definitions}}{{renderDefinition .}}{{end}}
+`
 
 type templateData struct {
-	PackageName string
-	Messages    []*ProtoMessage
-	Enums       []*ProtoEnum
-	Definitions []interface{}
+	PackageName   string
+	Messages      []*ProtoMessage
+	Enums         []*ProtoEnum
+	Definitions   []interface{}
+	UsesTimestamp bool
+	GoPackage     string
 }
 
 // Generate creates proto3 output from messages and enums in order
-func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum, definitions []interface{}) ([]byte, error) {
+func Generate(packageName string, packagePath string, messages []*ProtoMessage, enums []*ProtoEnum, definitions []interface{}, usesTimestamp bool) ([]byte, error) {
 	funcMap := template.FuncMap{
 		"formatComment":    formatCommentForTemplate,
 		"renderDefinition": renderDefinition,
@@ -31,11 +38,15 @@ func Generate(packageName string, messages []*ProtoMessage, enums []*ProtoEnum, 
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
 
+	goPackage := fmt.Sprintf("%s;%s", packagePath, packageName)
+
 	data := templateData{
-		PackageName: packageName,
-		Messages:    messages,
-		Enums:       enums,
-		Definitions: definitions,
+		PackageName:   packageName,
+		Messages:      messages,
+		Enums:         enums,
+		Definitions:   definitions,
+		UsesTimestamp: usesTimestamp,
+		GoPackage:     goPackage,
 	}
 
 	var buf bytes.Buffer

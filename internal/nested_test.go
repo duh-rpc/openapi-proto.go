@@ -40,6 +40,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   message Location {
     string street = 1 [json_name = "street"];
@@ -49,6 +51,7 @@ message User {
   string name = 1 [json_name = "name"];
   Location location = 2 [json_name = "location"];
 }
+
 `,
 		},
 		{
@@ -79,6 +82,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Person {
   message Contact {
     string phone = 1 [json_name = "phone"];
@@ -89,6 +94,7 @@ message Person {
   string email = 2 [json_name = "email"];
   Contact contact = 3 [json_name = "contact"];
 }
+
 `,
 		},
 		{
@@ -117,6 +123,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Order {
   message ShippingInfo {
     string streetName = 1 [json_name = "streetName"];
@@ -126,11 +134,15 @@ message Order {
   string orderId = 1 [json_name = "orderId"];
   ShippingInfo shippingInfo = 2 [json_name = "shippingInfo"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -174,6 +186,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Company {
   message Office {
     message Location {
@@ -188,6 +202,7 @@ message Company {
   string name = 1 [json_name = "name"];
   Office office = 2 [json_name = "office"];
 }
+
 `,
 		},
 		{
@@ -217,6 +232,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Profile {
   message Billing {
     string card = 1 [json_name = "card"];
@@ -229,11 +246,15 @@ message Profile {
   Billing billing = 1 [json_name = "billing"];
   Shipping shipping = 2 [json_name = "shipping"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -308,7 +329,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			if test.expectedErr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), test.expectedErr)
@@ -348,6 +372,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 // A user profile
 message User {
   // User's profile
@@ -360,9 +386,13 @@ message User {
   string name = 1 [json_name = "name"];
   Profile profile = 2 [json_name = "profile"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }

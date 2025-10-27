@@ -43,6 +43,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string name = 1 [json_name = "name"];
 }
@@ -54,6 +56,7 @@ message User_2 {
 message User_3 {
   int32 id = 1 [json_name = "id"];
 }
+
 `,
 		},
 		{
@@ -80,6 +83,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
@@ -91,6 +96,7 @@ enum Status_2 {
   STATUS_2_PENDING = 1;
   STATUS_2_COMPLETED = 2;
 }
+
 `,
 		},
 		{
@@ -117,6 +123,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Item {
   string name = 1 [json_name = "name"];
 }
@@ -126,11 +134,15 @@ enum Item_2 {
   ITEM_2_ONE = 1;
   ITEM_2_TWO = 2;
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})

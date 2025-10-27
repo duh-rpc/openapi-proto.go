@@ -33,9 +33,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string userId = 1 [json_name = "userId"];
 }
+
 `,
 		},
 		{
@@ -57,9 +60,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string email = 1 [json_name = "email"];
 }
+
 `,
 		},
 		{
@@ -81,14 +87,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Response {
   int32 HTTPStatus = 1 [json_name = "HTTPStatus"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -121,6 +133,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message MixedNaming {
   string userId = 1 [json_name = "userId"];
   string user_id = 2 [json_name = "user_id"];
@@ -128,8 +142,12 @@ message MixedNaming {
   int32 status_code = 4 [json_name = "status_code"];
   string email = 5 [json_name = "email"];
 }
+
 `
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -159,9 +177,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Response {
   string status_code = 1 [json_name = "status-code"];
 }
+
 `,
 		},
 		{
@@ -183,9 +204,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string user_name = 1 [json_name = "user.name"];
 }
+
 `,
 		},
 		{
@@ -207,9 +231,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Person {
   string first_name = 1 [json_name = "first name"];
 }
+
 `,
 		},
 		{
@@ -231,14 +258,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string user_name_test = 1 [json_name = "user--name..test"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -287,7 +320,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			require.ErrorContains(t, err, test.wantErr)
 		})
@@ -319,9 +355,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string user_ID = 1 [json_name = "user-ID"];
 }
+
 `,
 		},
 		{
@@ -343,9 +382,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string HTTP_Status = 1 [json_name = "HTTP-Status"];
 }
+
 `,
 		},
 		{
@@ -367,14 +409,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string api_v2_endpoint = 1 [json_name = "api.v2.endpoint"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -406,9 +454,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string status_code = 1 [json_name = "status---code"];
 }
+
 `,
 		},
 		{
@@ -430,9 +481,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string user_name = 1 [json_name = "user...name"];
 }
+
 `,
 		},
 		{
@@ -454,14 +508,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string first_name = 1 [json_name = "first  name"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -493,9 +553,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string status = 1 [json_name = "status-"];
 }
+
 `,
 		},
 		{
@@ -517,9 +580,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string user_ = 1 [json_name = "user_"];
 }
+
 `,
 		},
 		{
@@ -541,14 +607,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Test {
   string name_ = 1 [json_name = "name-_-"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})

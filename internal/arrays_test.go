@@ -35,9 +35,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   repeated string tags = 1 [json_name = "tags"];
 }
+
 `,
 		},
 		{
@@ -62,9 +65,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Numbers {
   repeated int32 values = 1 [json_name = "values"];
 }
+
 `,
 		},
 		{
@@ -89,9 +95,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Data {
   repeated int64 ids = 1 [json_name = "ids"];
 }
+
 `,
 		},
 		{
@@ -115,14 +124,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Flags {
   repeated bool enabled = 1 [json_name = "enabled"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -154,6 +169,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Address {
   string street = 1 [json_name = "street"];
 }
@@ -161,8 +178,12 @@ message Address {
 message User {
   repeated Address addresses = 1 [json_name = "addresses"];
 }
+
 `
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -191,6 +212,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Company {
   message Contact {
     string name = 1 [json_name = "name"];
@@ -198,8 +221,12 @@ message Company {
 
   repeated Contact contact = 1 [json_name = "contact"];
 }
+
 `
-	result, err := conv.Convert([]byte(singular), "testpkg")
+	result, err := conv.Convert([]byte(singular), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, singularExpected, string(result))
 }
@@ -229,6 +256,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Level {
   LEVEL_UNSPECIFIED = 0;
   LEVEL_LOW = 1;
@@ -239,8 +268,12 @@ enum Level {
 message Config {
   repeated Level level = 1 [json_name = "level"];
 }
+
 `
-	result, err := conv.Convert([]byte(singular), "testpkg")
+	result, err := conv.Convert([]byte(singular), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, singularExpected, string(result))
 }
@@ -341,7 +374,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			require.ErrorContains(t, err, test.wantErr)
 		})
@@ -366,7 +402,10 @@ components:
             items:
               type: integer
 `
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "nested arrays not supported")
 }
@@ -385,7 +424,10 @@ components:
         data:
           type: array
 `
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "array must have items defined")
 }

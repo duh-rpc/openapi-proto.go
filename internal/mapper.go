@@ -80,12 +80,12 @@ func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaP
 	typ := schema.Type[0]
 	format := schema.Format
 
-	scalarType, err := MapScalarType(typ, format)
+	scalarType, err := MapScalarType(ctx, typ, format)
 	return scalarType, false, err
 }
 
 // MapScalarType maps OpenAPI type+format to proto3 scalar type.
-func MapScalarType(typ, format string) (string, error) {
+func MapScalarType(ctx *Context, typ, format string) (string, error) {
 	switch typ {
 	case "integer":
 		if format == "int64" {
@@ -100,6 +100,10 @@ func MapScalarType(typ, format string) (string, error) {
 		return "double", nil
 
 	case "string":
+		if format == "date" || format == "date-time" {
+			ctx.UsesTimestamp = true
+			return "google.protobuf.Timestamp", nil
+		}
 		if format == "byte" || format == "binary" {
 			return "bytes", nil
 		}
@@ -193,7 +197,7 @@ func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *b
 
 	itemType := itemsSchema.Type[0]
 	format := itemsSchema.Format
-	return MapScalarType(itemType, format)
+	return MapScalarType(ctx, itemType, format)
 }
 
 // extractReferenceName extracts the schema name from a reference string.

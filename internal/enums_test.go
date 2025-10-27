@@ -26,15 +26,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
   STATUS_PENDING = 3;
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -57,15 +63,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_IN_PROGRESS = 1;
   STATUS_NOT_STARTED = 2;
   STATUS_COMPLETED = 3;
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -89,6 +101,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Code {
   CODE_UNSPECIFIED = 0;
   CODE_200 = 1;
@@ -96,9 +110,13 @@ enum Code {
   CODE_404 = 3;
   CODE_500 = 4;
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -121,15 +139,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 // Status of the operation
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -156,6 +180,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
@@ -166,9 +192,13 @@ message User {
   string name = 1 [json_name = "name"];
   Status status = 2 [json_name = "status"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -198,6 +228,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
@@ -214,9 +246,13 @@ message User {
   Status status = 1 [json_name = "status"];
   Role role = 2 [json_name = "role"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -248,6 +284,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
@@ -263,9 +301,13 @@ enum Priority {
   PRIORITY_HIGH = 1;
   PRIORITY_LOW = 2;
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }

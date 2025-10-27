@@ -10,19 +10,21 @@ import (
 
 // Context holds state during conversion
 type Context struct {
-	Tracker     *NameTracker
-	Messages    []*ProtoMessage
-	Enums       []*ProtoEnum
-	Definitions []interface{} // Mixed enums and messages in processing order
+	Tracker       *NameTracker
+	Messages      []*ProtoMessage
+	Enums         []*ProtoEnum
+	Definitions   []interface{} // Mixed enums and messages in processing order
+	UsesTimestamp bool
 }
 
 // NewContext creates a new conversion context
 func NewContext() *Context {
 	return &Context{
-		Tracker:     NewNameTracker(),
-		Messages:    []*ProtoMessage{},
-		Enums:       []*ProtoEnum{},
-		Definitions: []interface{}{},
+		Tracker:       NewNameTracker(),
+		Messages:      []*ProtoMessage{},
+		Enums:         []*ProtoEnum{},
+		Definitions:   []interface{}{},
+		UsesTimestamp: false,
 	}
 }
 

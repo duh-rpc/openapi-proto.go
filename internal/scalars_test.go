@@ -60,6 +60,10 @@ components:
 
 package testpkg;
 
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message AllTypes {
   int32 int32Field = 1 [json_name = "int32Field"];
   int64 int64Field = 2 [json_name = "int64Field"];
@@ -68,10 +72,11 @@ message AllTypes {
   string stringField = 5 [json_name = "stringField"];
   bytes bytesField = 6 [json_name = "bytesField"];
   bytes binaryField = 7 [json_name = "binaryField"];
-  string dateField = 8 [json_name = "dateField"];
-  string dateTimeField = 9 [json_name = "dateTimeField"];
+  google.protobuf.Timestamp dateField = 8 [json_name = "dateField"];
+  google.protobuf.Timestamp dateTimeField = 9 [json_name = "dateTimeField"];
   bool boolField = 10 [json_name = "boolField"];
 }
+
 `,
 		},
 		{
@@ -93,9 +98,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Thing {
   int32 count = 1 [json_name = "count"];
 }
+
 `,
 		},
 		{
@@ -117,14 +125,52 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Thing {
   double value = 1 [json_name = "value"];
 }
+
+`,
+		},
+		{
+			name: "array of timestamps",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        timestamp:
+          type: array
+          items:
+            type: string
+            format: date-time
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/example/proto/v1;testpkg";
+
+message Event {
+  repeated google.protobuf.Timestamp timestamp = 1 [json_name = "timestamp"];
+}
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)

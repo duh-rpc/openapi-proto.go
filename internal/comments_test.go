@@ -34,10 +34,13 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 // Represents a user in the system
 message User {
   string name = 1 [json_name = "name"];
 }
+
 `,
 		},
 		{
@@ -60,10 +63,13 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   // User's email address
   string email = 1 [json_name = "email"];
 }
+
 `,
 		},
 		{
@@ -85,14 +91,20 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string name = 1 [json_name = "name"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -124,6 +136,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 // A user object that contains personal information.
 // This includes name, email, and contact details.
 // Used across the entire application.
@@ -132,9 +146,13 @@ message User {
   // Can include middle names and suffixes.
   string name = 1 [json_name = "name"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -161,15 +179,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 // First paragraph of description.
 //
 // Second paragraph after blank line.
 message User {
   string email = 1 [json_name = "email"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }

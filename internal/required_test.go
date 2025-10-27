@@ -40,11 +40,14 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string email = 1 [json_name = "email"];
   string name = 2 [json_name = "name"];
   int32 age = 3 [json_name = "age"];
 }
+
 `,
 		},
 		{
@@ -74,11 +77,14 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Product {
   string id = 1 [json_name = "id"];
   string title = 2 [json_name = "title"];
   double price = 3 [json_name = "price"];
 }
+
 `,
 		},
 		{
@@ -102,15 +108,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Thing {
   string field1 = 1 [json_name = "field1"];
   int32 field2 = 2 [json_name = "field2"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})
@@ -146,10 +158,13 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Item {
   string name = 1 [json_name = "name"];
   int32 count = 2 [json_name = "count"];
 }
+
 `,
 		},
 		{
@@ -172,9 +187,12 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Data {
   string value = 1 [json_name = "value"];
 }
+
 `,
 		},
 		{
@@ -203,11 +221,14 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Record {
   int32 optionalInt = 1 [json_name = "optionalInt"];
   string optionalString = 2 [json_name = "optionalString"];
   bool optionalBool = 3 [json_name = "optionalBool"];
 }
+
 `,
 		},
 		{
@@ -234,16 +255,22 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Mixed {
   string nullable = 1 [json_name = "nullable"];
   string nonNullable = 2 [json_name = "nonNullable"];
   string unspecified = 3 [json_name = "unspecified"];
 }
+
 `,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
 		})

@@ -59,7 +59,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, test.expected)
 		})
@@ -118,7 +121,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, test.expected)
 		})
@@ -174,7 +180,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, test.expected)
 		})
@@ -222,7 +231,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, test.expected)
 		})
@@ -244,7 +256,10 @@ components:
           description: A property with no type or $ref
 `
 
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "property must have type or $ref")
 }
@@ -313,7 +328,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, "only objects and enums supported at top level")
 		})
@@ -334,7 +352,10 @@ components:
         type: string
 `
 
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "only objects and enums supported at top level")
 }
@@ -390,7 +411,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), "testpkg")
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 			require.Error(t, err)
 			assert.ErrorContains(t, err, test.expectedSchema)
 			assert.ErrorContains(t, err, test.expectedProp)
@@ -415,7 +439,10 @@ components:
             - "null"
 `
 
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "multi-type properties not supported")
 }

@@ -12,26 +12,38 @@ func TestConvertBasics(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		given    []byte
-		pkg      string
+		opts     conv.ConvertOptions
 		expected string
 		wantErr  string
 	}{
 		{
 			name:    "empty openapi bytes",
 			given:   []byte{},
-			pkg:     "testpkg",
+			opts:    conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
 			wantErr: "openapi input cannot be empty",
 		},
 		{
 			name:    "empty package name",
 			given:   []byte("openapi: 3.0.0"),
-			pkg:     "",
+			opts:    conv.ConvertOptions{PackagePath: "github.com/example/proto/v1"},
+			wantErr: "package name cannot be empty",
+		},
+		{
+			name:    "empty package path",
+			given:   []byte("openapi: 3.0.0"),
+			opts:    conv.ConvertOptions{PackageName: "testpkg"},
+			wantErr: "package path cannot be empty",
+		},
+		{
+			name:    "both empty",
+			given:   []byte("openapi: 3.0.0"),
+			opts:    conv.ConvertOptions{},
 			wantErr: "package name cannot be empty",
 		},
 		{
 			name:    "invalid YAML syntax",
 			given:   []byte("this is not valid: [yaml"),
-			pkg:     "testpkg",
+			opts:    conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
 			wantErr: "failed to parse OpenAPI document",
 		},
 		{
@@ -41,9 +53,10 @@ info:
   title: Test API
   version: 1.0.0
 paths: {}
+
 `),
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			opts:     conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 		{
 			name: "OpenAPI 2.0 Swagger",
@@ -52,8 +65,9 @@ info:
   title: Test API
   version: 1.0.0
 paths: {}
+
 `),
-			pkg:     "testpkg",
+			opts:    conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
 			wantErr: "supplied spec is a different version",
 		},
 		{
@@ -66,12 +80,12 @@ paths: {}
   },
   "paths": {}
 }`),
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			opts:     conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert(test.given, test.pkg)
+			result, err := conv.Convert(test.given, test.opts)
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
@@ -88,7 +102,6 @@ func TestConvertParseDocument(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		given    string
-		pkg      string
 		expected string
 		wantErr  string
 	}{
@@ -99,9 +112,9 @@ info:
   title: Test API
   version: 1.0.0
 paths: {}
+
 `,
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 		{
 			name: "parse valid OpenAPI 3.0 JSON",
@@ -113,18 +126,19 @@ paths: {}
   },
   "paths": {}
 }`,
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 		{
 			name:    "non-OpenAPI document",
 			given:   `title: Some Random YAML`,
-			pkg:     "testpkg",
 			wantErr: "spec type not supported",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), test.pkg)
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
@@ -141,7 +155,6 @@ func TestConvertExtractSchemas(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		given    string
-		pkg      string
 		expected string
 	}{
 		{
@@ -160,10 +173,11 @@ components:
     Order:
       type: object
 `,
-			pkg: "testpkg",
 			expected: `syntax = "proto3";
 
 package testpkg;
+
+option go_package = "github.com/example/proto/v1;testpkg";
 
 message User {
 }
@@ -173,6 +187,7 @@ message Product {
 
 message Order {
 }
+
 `,
 		},
 		{
@@ -182,9 +197,9 @@ info:
   title: Test API
   version: 1.0.0
 paths: {}
+
 `,
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 		{
 			name: "document with empty components/schemas",
@@ -195,13 +210,16 @@ info:
 paths: {}
 components:
   schemas: {}
+
 `,
-			pkg:      "testpkg",
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), test.pkg)
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result))
@@ -239,11 +257,14 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message User {
   string userId = 1 [json_name = "userId"];
   string email = 2 [json_name = "email"];
   int32 age = 3 [json_name = "age"];
 }
+
 `,
 		},
 		{
@@ -278,7 +299,10 @@ components:
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			result, err := conv.Convert([]byte(test.given), "testpkg")
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
@@ -315,15 +339,21 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Order {
   string orderId = 1 [json_name = "orderId"];
   string customerId = 2 [json_name = "customerId"];
   double amount = 3 [json_name = "amount"];
   string status = 4 [json_name = "status"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -427,6 +457,10 @@ components:
 
 package ecommerce;
 
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/example/proto/v1;ecommerce";
+
 // Status of an order
 enum OrderStatus {
   ORDER_STATUS_UNSPECIFIED = 0;
@@ -482,11 +516,15 @@ message Order {
   OrderStatus status = 4 [json_name = "status"];
   Address shippingAddress = 5 [json_name = "shippingAddress"];
   double totalAmount = 6 [json_name = "totalAmount"];
-  string createdAt = 7 [json_name = "createdAt"];
+  google.protobuf.Timestamp createdAt = 7 [json_name = "createdAt"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "ecommerce")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "ecommerce",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }

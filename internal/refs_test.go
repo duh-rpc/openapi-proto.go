@@ -36,6 +36,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Address {
   string street = 1 [json_name = "street"];
   string city = 2 [json_name = "city"];
@@ -45,9 +47,13 @@ message User {
   string name = 1 [json_name = "name"];
   Address address = 2 [json_name = "address"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -78,6 +84,8 @@ components:
 
 package testpkg;
 
+option go_package = "github.com/example/proto/v1;testpkg";
+
 message Address {
   string street = 1 [json_name = "street"];
 }
@@ -86,9 +94,13 @@ message User {
   Address homeAddress = 1 [json_name = "homeAddress"];
   Address workAddress = 2 [json_name = "workAddress"];
 }
+
 `
 
-	result, err := conv.Convert([]byte(given), "testpkg")
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, expected, string(result))
 }
@@ -108,7 +120,10 @@ components:
           $ref: './external.yaml#/components/schemas/Address'
 `
 
-	_, err := conv.Convert([]byte(given), "testpkg")
+	_, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
 	require.Error(t, err)
 	// The error comes from libopenapi build stage indicating the reference cannot be resolved
 	assert.Contains(t, err.Error(), "cannot resolve reference")
