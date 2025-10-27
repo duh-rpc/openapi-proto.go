@@ -113,14 +113,14 @@ Create a per-message `NameTracker` instance for field name collision detection w
 
 ---
 
-## Phase 1: Fix Field Name Scoping in Top-Level Messages
+## Phase 1: Fix Field Name Scoping in Top-Level Messages ✓
 
 ### Overview
 Update `buildMessage()` to use a per-message `NameTracker` for field names instead of the global tracker, ensuring fields in different messages don't collide.
 
 ### Changes Required
 
-#### 1. Field Name Tracking in buildMessage()
+#### 1. Field Name Tracking in buildMessage() ✓
 **File**: `internal/builder.go`
 **Changes**: Update field name generation logic
 
@@ -143,7 +143,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 - New pattern: `protoFieldName := fieldTracker.UniqueName(sanitizedName)`
 - Note: `ProtoType()` may call `buildNestedMessage()` recursively, which will create its own independent field tracker
 
-#### 2. Testing Requirements
+#### 2. Testing Requirements ✓
 
 ```go
 func TestFieldNamesAcrossMessages(t *testing.T)
@@ -179,14 +179,14 @@ go test ./internal/... -v  # Ensure no regressions
 
 ---
 
-## Phase 2: Fix Field Name Scoping in Nested Messages
+## Phase 2: Fix Field Name Scoping in Nested Messages ✓
 
 ### Overview
 Update `buildNestedMessage()` to use a per-message `NameTracker` for field names, ensuring consistency with top-level message behavior.
 
 ### Changes Required
 
-#### 1. Field Name Tracking in buildNestedMessage()
+#### 1. Field Name Tracking in buildNestedMessage() ✓
 **File**: `internal/builder.go`
 **Changes**: Update nested message field name generation logic
 
@@ -211,7 +211,7 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 - Important: `buildNestedMessage()` can be called recursively for deeply nested structures; each call creates its own independent field tracker
 - This is called from `ProtoType()` in `mapper.go` when processing inline object properties
 
-#### 2. Testing Requirements
+#### 2. Testing Requirements ✓
 
 Add test cases to existing `TestFieldNamesAcrossMessages`:
 
@@ -250,14 +250,14 @@ go test ./internal/... -v  # Full regression test
 
 ---
 
-## Phase 3: Verify and Document
+## Phase 3: Verify and Document ✓
 
 ### Overview
 Run full test suite, verify no regressions, and ensure the fix is complete.
 
 ### Changes Required
 
-#### 1. Regression Testing
+#### 1. Regression Testing ✓
 **Commands**: Full test suite execution
 
 **Testing Responsibilities:**
@@ -272,7 +272,7 @@ go test ./... -v
 go test ./... -race  # Race condition check (general good practice, not specific to this fix)
 ```
 
-#### 2. Verify Exact Bug Scenario is Fixed
+#### 2. Verify Exact Bug Scenario is Fixed ✓
 **Testing Responsibilities:**
 - Validate the specific bug described in the issue is resolved
 - CreateUserRequest and CreateUserResponse should both have `email` without suffixes

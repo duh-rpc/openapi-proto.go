@@ -107,6 +107,8 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 		Nested:      []*ProtoMessage{},
 	}
 
+	fieldTracker := NewNameTracker()
+
 	// Process properties in YAML order
 	if schema.Properties != nil {
 		fieldNumber := 1
@@ -120,7 +122,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			if err != nil {
 				return nil, PropertyError(name, propName, err.Error())
 			}
-			protoFieldName := ctx.Tracker.UniqueName(sanitizedName)
+			protoFieldName := fieldTracker.UniqueName(sanitizedName)
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap with PropertyError if the error already contains the property name
@@ -250,6 +252,8 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 		Nested:      []*ProtoMessage{},
 	}
 
+	fieldTracker := NewNameTracker()
+
 	// Process properties in YAML order
 	if schema.Properties != nil {
 		fieldNumber := 1
@@ -263,7 +267,7 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 			if err != nil {
 				return nil, fmt.Errorf("property '%s': %w", propName, err)
 			}
-			protoFieldName := ctx.Tracker.UniqueName(sanitizedName)
+			protoFieldName := fieldTracker.UniqueName(sanitizedName)
 			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap if the error already contains the property name
