@@ -33,7 +33,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string userId = 1 [json_name = "userId"];
@@ -60,7 +60,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string email = 1 [json_name = "email"];
@@ -87,7 +87,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Response {
   int32 HTTPStatus = 1 [json_name = "HTTPStatus"];
@@ -133,7 +133,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message MixedNaming {
   string userId = 1 [json_name = "userId"];
@@ -177,7 +177,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Response {
   string status_code = 1 [json_name = "status-code"];
@@ -204,7 +204,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string user_name = 1 [json_name = "user.name"];
@@ -231,7 +231,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Person {
   string first_name = 1 [json_name = "first name"];
@@ -258,7 +258,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string user_name_test = 1 [json_name = "user--name..test"];
@@ -355,7 +355,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string user_ID = 1 [json_name = "user-ID"];
@@ -382,7 +382,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string HTTP_Status = 1 [json_name = "HTTP-Status"];
@@ -409,7 +409,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string api_v2_endpoint = 1 [json_name = "api.v2.endpoint"];
@@ -454,7 +454,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string status_code = 1 [json_name = "status---code"];
@@ -481,7 +481,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string user_name = 1 [json_name = "user...name"];
@@ -508,7 +508,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string first_name = 1 [json_name = "first  name"];
@@ -553,7 +553,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string status = 1 [json_name = "status-"];
@@ -580,7 +580,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string user_ = 1 [json_name = "user_"];
@@ -607,7 +607,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Test {
   string name_ = 1 [json_name = "name-_-"];

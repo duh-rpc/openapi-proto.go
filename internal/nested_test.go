@@ -40,7 +40,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   message Location {
@@ -82,7 +82,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Person {
   message Contact {
@@ -123,7 +123,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Order {
   message ShippingInfo {
@@ -186,7 +186,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Company {
   message Office {
@@ -232,7 +232,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Profile {
   message Billing {
@@ -372,7 +372,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 // A user profile
 message User {

@@ -40,7 +40,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string email = 1 [json_name = "email"];
@@ -77,7 +77,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Product {
   string id = 1 [json_name = "id"];
@@ -108,7 +108,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Thing {
   string field1 = 1 [json_name = "field1"];
@@ -158,7 +158,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Item {
   string name = 1 [json_name = "name"];
@@ -187,7 +187,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Data {
   string value = 1 [json_name = "value"];
@@ -221,7 +221,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Record {
   int32 optionalInt = 1 [json_name = "optionalInt"];
@@ -255,7 +255,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Mixed {
   string nullable = 1 [json_name = "nullable"];

@@ -38,15 +38,13 @@ func Generate(packageName string, packagePath string, ctx *Context) ([]byte, err
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
 
-	goPackage := fmt.Sprintf("%s;%s", packagePath, packageName)
-
 	data := templateData{
 		PackageName:   packageName,
 		Messages:      ctx.Messages,
 		Enums:         ctx.Enums,
 		Definitions:   ctx.Definitions,
 		UsesTimestamp: ctx.UsesTimestamp,
-		GoPackage:     goPackage,
+		GoPackage:     packagePath,
 	}
 
 	var buf bytes.Buffer

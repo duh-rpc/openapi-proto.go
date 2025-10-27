@@ -56,7 +56,7 @@ paths: {}
 
 `),
 			opts:     conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 		{
 			name: "OpenAPI 2.0 Swagger",
@@ -81,7 +81,7 @@ paths: {}
   "paths": {}
 }`),
 			opts:     conv.ConvertOptions{PackageName: "testpkg", PackagePath: "github.com/example/proto/v1"},
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -114,7 +114,7 @@ info:
 paths: {}
 
 `,
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 		{
 			name: "parse valid OpenAPI 3.0 JSON",
@@ -126,7 +126,7 @@ paths: {}
   },
   "paths": {}
 }`,
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 		{
 			name:    "non-OpenAPI document",
@@ -177,7 +177,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
 }
@@ -199,7 +199,7 @@ info:
 paths: {}
 
 `,
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 		{
 			name: "document with empty components/schemas",
@@ -212,7 +212,7 @@ components:
   schemas: {}
 
 `,
-			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1;testpkg\";\n\n",
+			expected: "syntax = \"proto3\";\n\npackage testpkg;\n\noption go_package = \"github.com/example/proto/v1\";\n\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -257,7 +257,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string userId = 1 [json_name = "userId"];
@@ -339,7 +339,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Order {
   string orderId = 1 [json_name = "orderId"];
@@ -459,7 +459,7 @@ package ecommerce;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/example/proto/v1;ecommerce";
+option go_package = "github.com/example/proto/v1";
 
 // Status of an order
 enum OrderStatus {

@@ -36,7 +36,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Address {
   string street = 1 [json_name = "street"];
@@ -84,7 +84,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Address {
   string street = 1 [json_name = "street"];

@@ -62,7 +62,7 @@ package testpkg;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message AllTypes {
   int32 int32Field = 1 [json_name = "int32Field"];
@@ -98,7 +98,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Thing {
   int32 count = 1 [json_name = "count"];
@@ -125,7 +125,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Thing {
   double value = 1 [json_name = "value"];
@@ -157,7 +157,7 @@ package testpkg;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Event {
   repeated google.protobuf.Timestamp timestamp = 1 [json_name = "timestamp"];

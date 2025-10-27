@@ -35,7 +35,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   repeated string tags = 1 [json_name = "tags"];
@@ -65,7 +65,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Numbers {
   repeated int32 values = 1 [json_name = "values"];
@@ -95,7 +95,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Data {
   repeated int64 ids = 1 [json_name = "ids"];
@@ -124,7 +124,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Flags {
   repeated bool enabled = 1 [json_name = "enabled"];
@@ -169,7 +169,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Address {
   string street = 1 [json_name = "street"];
@@ -212,7 +212,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Company {
   message Contact {
@@ -256,7 +256,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Level {
   LEVEL_UNSPECIFIED = 0;

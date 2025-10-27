@@ -26,7 +26,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
@@ -63,7 +63,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
@@ -101,7 +101,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Code {
   CODE_UNSPECIFIED = 0;
@@ -139,7 +139,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 // Status of the operation
 enum Status {
@@ -180,7 +180,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
@@ -228,7 +228,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
@@ -284,7 +284,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;

@@ -43,7 +43,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message User {
   string name = 1 [json_name = "name"];
@@ -83,7 +83,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
@@ -123,7 +123,7 @@ components:
 
 package testpkg;
 
-option go_package = "github.com/example/proto/v1;testpkg";
+option go_package = "github.com/example/proto/v1";
 
 message Item {
   string name = 1 [json_name = "name"];
