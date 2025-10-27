@@ -20,7 +20,8 @@ components:
       enum:
         - active
         - inactive
-        - pending`
+        - pending
+        - isActive`
 
 	expected := `syntax = "proto3";
 
@@ -33,6 +34,7 @@ enum Status {
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
   STATUS_PENDING = 3;
+  STATUS_IS_ACTIVE = 4;
 }
 
 `
@@ -174,7 +176,8 @@ components:
           type: string
           enum:
             - active
-            - inactive`
+            - inactive
+            - notStarted`
 
 	expected := `syntax = "proto3";
 
@@ -186,6 +189,7 @@ enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
+  STATUS_NOT_STARTED = 3;
 }
 
 message User {
@@ -222,7 +226,8 @@ components:
           type: string
           enum:
             - admin
-            - user`
+            - user
+            - superAdmin`
 
 	expected := `syntax = "proto3";
 
@@ -240,6 +245,7 @@ enum Role {
   ROLE_UNSPECIFIED = 0;
   ROLE_ADMIN = 1;
   ROLE_USER = 2;
+  ROLE_SUPER_ADMIN = 3;
 }
 
 message User {

@@ -80,10 +80,10 @@ func ToPascalCase(s string) string {
 }
 
 // ToEnumValueName converts a value to ENUM_PREFIX_VALUE_NAME format.
-// Examples: (Status, active) → STATUS_ACTIVE, (Status, in-progress) → STATUS_IN_PROGRESS, (Code, 401) → CODE_401
+// Examples: (Status, active) → STATUS_ACTIVE, (Status, in-progress) → STATUS_IN_PROGRESS, (SortBy, createdAt) → SORT_BY_CREATED_AT
 func ToEnumValueName(enumName, value string) string {
 	upperEnum := strings.ToUpper(ToSnakeCase(enumName))
-	upperValue := strings.ToUpper(value)
+	upperValue := strings.ToUpper(ToSnakeCase(value))
 	upperValue = strings.ReplaceAll(upperValue, "-", "_")
 	return fmt.Sprintf("%s_%s", upperEnum, upperValue)
 }
