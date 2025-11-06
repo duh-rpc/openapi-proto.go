@@ -119,12 +119,12 @@ message User {
 
 ### OpenAPI Features Not Supported
 - ❌ Schema composition: `allOf`, `anyOf`, `oneOf`, `not`
+- ❌ Polymorphism and discriminators - [see why](docs/discriminated-unions.md)
 - ❌ External file references (only internal `#/components/schemas` refs)
 - ❌ Nested arrays (e.g., `array` of `array`)
 - ❌ Multi-type properties (e.g., `type: [string, null]`)
 - ❌ Map types via `additionalProperties`
 - ❌ Validation constraints (min, max, pattern, etc. are ignored)
-- ❌ Polymorphism and discriminators
 - ❌ OpenAPI 2.0 (Swagger) - only 3.x supported
 
 ### Proto3 Features Not Generated
@@ -411,9 +411,10 @@ make lint
 
 ### Detailed Documentation
 See the following links for more details:
-- Detailed Enum Docs [Enums](docs/enums.md)
-- Detailed Scalar Docs [Scalar](docs/scalar.md)
-- Detailed Objects Docs [Objects](docs/objects.md)
+- [Enums](docs/enums.md) - How string enums are converted and their limitations
+- [Scalar Types](docs/scalar.md) - Type mapping between OpenAPI and proto3
+- [Objects](docs/objects.md) - Message generation and nested objects
+- [Discriminated Unions](docs/discriminated-unions.md) - Why oneOf is not supported and alternatives
 
 ## License
 
