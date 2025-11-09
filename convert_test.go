@@ -700,3 +700,210 @@ components:
 	require.ErrorContains(t, err, "must use $ref")
 	require.Nil(t, result)
 }
+
+func TestTypeMapClassifiesUnionTypes(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+    Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        bark:
+          type: string
+    Cat:
+      type: object
+      properties:
+        petType:
+          type: string
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.TypeMap)
+
+	info, exists := result.TypeMap["Pet"]
+	require.True(t, exists)
+	assert.Equal(t, conv.TypeLocationGolang, info.Location)
+	assert.Equal(t, "contains oneOf", info.Reason)
+}
+
+func TestTypeMapClassifiesVariants(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+    Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        bark:
+          type: string
+    Cat:
+      type: object
+      properties:
+        petType:
+          type: string
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.TypeMap)
+
+	dogInfo, exists := result.TypeMap["Dog"]
+	require.True(t, exists)
+	assert.Equal(t, conv.TypeLocationGolang, dogInfo.Location)
+	assert.Equal(t, "variant of union type Pet", dogInfo.Reason)
+
+	catInfo, exists := result.TypeMap["Cat"]
+	require.True(t, exists)
+	assert.Equal(t, conv.TypeLocationGolang, catInfo.Location)
+	assert.Equal(t, "variant of union type Pet", catInfo.Reason)
+}
+
+func TestTypeMapClassifiesReferencingTypes(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Owner:
+      type: object
+      properties:
+        name:
+          type: string
+        pet:
+          $ref: '#/components/schemas/Pet'
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+    Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        bark:
+          type: string
+    Cat:
+      type: object
+      properties:
+        petType:
+          type: string
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.TypeMap)
+
+	ownerInfo, exists := result.TypeMap["Owner"]
+	require.True(t, exists)
+	assert.Equal(t, conv.TypeLocationGolang, ownerInfo.Location)
+	assert.Equal(t, "references union type Pet", ownerInfo.Reason)
+}
+
+func TestTypeMapTransitiveClosure(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    A:
+      type: object
+      properties:
+        b:
+          $ref: '#/components/schemas/B'
+    B:
+      type: object
+      properties:
+        c:
+          $ref: '#/components/schemas/C'
+    C:
+      oneOf:
+        - $ref: '#/components/schemas/D'
+        - $ref: '#/components/schemas/E'
+      discriminator:
+        propertyName: type
+    D:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+    E:
+      type: object
+      properties:
+        type:
+          type: string
+        count:
+          type: integer
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.TypeMap)
+
+	// All should be golang because of transitive closure
+	for _, name := range []string{"A", "B", "C", "D", "E"} {
+		info, exists := result.TypeMap[name]
+		require.True(t, exists)
+		assert.Equal(t, conv.TypeLocationGolang, info.Location)
+	}
+
+	// Check specific reasons
+	assert.Equal(t, "contains oneOf", result.TypeMap["C"].Reason)
+	assert.Equal(t, "variant of union type C", result.TypeMap["D"].Reason)
+	assert.Equal(t, "variant of union type C", result.TypeMap["E"].Reason)
+	assert.Equal(t, "references union type C", result.TypeMap["B"].Reason)
+	assert.Equal(t, "references union type B", result.TypeMap["A"].Reason)
+}

@@ -1,0 +1,134 @@
+package internal
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/pb33f/libopenapi/datamodel/high/base"
+)
+
+// DependencyGraph tracks schema dependencies and union types for transitive closure computation
+type DependencyGraph struct {
+	schemas       map[string]*base.SchemaProxy
+	edges         map[string][]string // from -> []to dependencies
+	hasUnion      map[string]bool
+	unionReasons  map[string]string
+	unionVariants map[string][]string // union name -> variant names
+}
+
+// NewDependencyGraph creates a new dependency graph
+func NewDependencyGraph() *DependencyGraph {
+	return &DependencyGraph{
+		schemas:       make(map[string]*base.SchemaProxy),
+		edges:         make(map[string][]string),
+		hasUnion:      make(map[string]bool),
+		unionReasons:  make(map[string]string),
+		unionVariants: make(map[string][]string),
+	}
+}
+
+// AddSchema registers a schema in the graph
+func (g *DependencyGraph) AddSchema(name string, proxy *base.SchemaProxy) error {
+	g.schemas[name] = proxy
+	return nil
+}
+
+// AddDependency records that 'from' schema references 'to' schema
+func (g *DependencyGraph) AddDependency(from, to string) {
+	if g.edges[from] == nil {
+		g.edges[from] = make([]string, 0)
+	}
+	g.edges[from] = append(g.edges[from], to)
+}
+
+// MarkUnion marks a schema as containing a union with the given reason and variant names
+func (g *DependencyGraph) MarkUnion(schemaName, reason string, variants []string) {
+	g.hasUnion[schemaName] = true
+	g.unionReasons[schemaName] = reason
+	g.unionVariants[schemaName] = variants
+}
+
+// ComputeTransitiveClosure performs BFS to find all schemas that should be Go-only
+// Returns goTypes (Go-only schemas), protoTypes (proto schemas), and reasons
+func (g *DependencyGraph) ComputeTransitiveClosure() (goTypes, protoTypes map[string]bool, reasons map[string]string) {
+	goTypes = make(map[string]bool)
+	reasons = make(map[string]string)
+	visited := make(map[string]bool)
+
+	// Mark direct union types
+	for name, reason := range g.unionReasons {
+		goTypes[name] = true
+		reasons[name] = reason
+		visited[name] = true
+	}
+
+	// Mark union variants
+	for unionName, variants := range g.unionVariants {
+		for _, variant := range variants {
+			if !goTypes[variant] {
+				goTypes[variant] = true
+				reasons[variant] = fmt.Sprintf("variant of union type %s", unionName)
+				visited[variant] = true
+			}
+		}
+	}
+
+	// BFS to find all types referencing Go-only types
+	queue := make([]string, 0)
+	for name := range goTypes {
+		queue = append(queue, name)
+	}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		// Find all types that depend on (reference) current
+		for from, deps := range g.edges {
+			if visited[from] {
+				continue
+			}
+
+			// Check if 'from' references 'current'
+			for _, to := range deps {
+				if to == current {
+					// Mark 'from' as Go-only because it references a Go-only type
+					goTypes[from] = true
+					reasons[from] = fmt.Sprintf("references union type %s", current)
+					visited[from] = true
+					queue = append(queue, from)
+					break
+				}
+			}
+		}
+	}
+
+	// Proto types are everything else
+	protoTypes = make(map[string]bool)
+	for name := range g.schemas {
+		if !goTypes[name] {
+			protoTypes[name] = true
+		}
+	}
+
+	return goTypes, protoTypes, reasons
+}
+
+// extractVariantNames extracts schema names from oneOf variant references
+func extractVariantNames(oneOf []*base.SchemaProxy) []string {
+	variants := make([]string, 0, len(oneOf))
+	for _, variant := range oneOf {
+		if variant.IsReference() {
+			ref := variant.GetReference()
+			// Extract name from reference path
+			parts := strings.Split(ref, "/")
+			if len(parts) > 0 {
+				name := parts[len(parts)-1]
+				if name != "" {
+					variants = append(variants, name)
+				}
+			}
+		}
+	}
+	return variants
+}

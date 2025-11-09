@@ -59,9 +59,16 @@ type ProtoEnumValue struct {
 	Number int
 }
 
-// BuildMessages processes all schemas and returns messages
-func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) error {
+// BuildMessages processes all schemas and returns messages and dependency graph
+func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) (*DependencyGraph, error) {
+	graph := NewDependencyGraph()
+
+	// First pass: Add all schemas to graph and detect unions
 	for _, entry := range entries {
+		if err := graph.AddSchema(entry.Name, entry.Proxy); err != nil {
+			return nil, err
+		}
+
 		schema := entry.Proxy.Schema()
 		if schema == nil {
 			continue
@@ -69,7 +76,21 @@ func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) error {
 
 		// Validate schema first
 		if err := validateTopLevelSchema(schema, entry.Name); err != nil {
-			return err
+			return nil, err
+		}
+
+		// Detect oneOf and mark as union
+		if len(schema.OneOf) > 0 {
+			variants := extractVariantNames(schema.OneOf)
+			graph.MarkUnion(entry.Name, "contains oneOf", variants)
+		}
+	}
+
+	// Second pass: Build messages and track dependencies
+	for _, entry := range entries {
+		schema := entry.Proxy.Schema()
+		if schema == nil {
+			continue
 		}
 
 		// Skip oneOf schemas for now (will be handled as Go code in later phases)
@@ -81,21 +102,21 @@ func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) error {
 		if isEnumSchema(schema) {
 			_, err := buildEnum(entry.Name, entry.Proxy, ctx)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			continue
 		}
 
-		_, err := buildMessage(entry.Name, entry.Proxy, ctx)
+		_, err := buildMessage(entry.Name, entry.Proxy, ctx, graph)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return graph, nil
 }
 
 // buildMessage creates a protoMessage from an OpenAPI schema
-func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMessage, error) {
+func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *DependencyGraph) (*ProtoMessage, error) {
 	schema := proxy.Schema()
 	if schema == nil {
 		if err := proxy.GetBuildError(); err != nil {
@@ -125,6 +146,35 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			propSchema := propProxy.Schema()
 			if propSchema == nil {
 				return nil, PropertyError(name, propName, "has nil schema")
+			}
+
+			// Track dependency if property references another schema
+			if propProxy.IsReference() {
+				ref := propProxy.GetReference()
+				parts := strings.Split(ref, "/")
+				if len(parts) > 0 {
+					refName := parts[len(parts)-1]
+					if refName != "" {
+						graph.AddDependency(name, refName)
+					}
+				}
+			}
+
+			// Track dependencies in array items
+			if len(propSchema.Type) > 0 && contains(propSchema.Type, "array") {
+				if propSchema.Items != nil && propSchema.Items.A != nil {
+					itemProxy := propSchema.Items.A
+					if itemProxy.IsReference() {
+						ref := itemProxy.GetReference()
+						parts := strings.Split(ref, "/")
+						if len(parts) > 0 {
+							refName := parts[len(parts)-1]
+							if refName != "" {
+								graph.AddDependency(name, refName)
+							}
+						}
+					}
+				}
 			}
 
 			sanitizedName, err := SanitizeFieldName(propName)

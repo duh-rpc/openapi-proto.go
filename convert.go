@@ -89,18 +89,21 @@ func Convert(openapi []byte, opts ConvertOptions) (*ConvertResult, error) {
 	}
 
 	ctx := internal.NewContext()
-	err = internal.BuildMessages(schemas, ctx)
+	graph, err := internal.BuildMessages(schemas, ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	// Compute transitive closure to classify types
+	goTypes, protoTypes, reasons := graph.ComputeTransitiveClosure()
+
+	// Build TypeMap using classification results
+	typeMap := buildTypeMap(goTypes, protoTypes, reasons)
 
 	protoBytes, err := internal.Generate(opts.PackageName, opts.PackagePath, ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	// Build TypeMap with all schemas as proto location
-	typeMap := buildInitialTypeMap(schemas)
 
 	return &ConvertResult{
 		Protobuf: protoBytes,
@@ -109,12 +112,21 @@ func Convert(openapi []byte, opts ConvertOptions) (*ConvertResult, error) {
 	}, nil
 }
 
-// buildInitialTypeMap creates a TypeMap with all schemas marked as proto location
-func buildInitialTypeMap(schemas []*parser.SchemaEntry) map[string]*TypeInfo {
+// buildTypeMap creates a TypeMap from dependency graph classification results
+func buildTypeMap(goTypes, protoTypes map[string]bool, reasons map[string]string) map[string]*TypeInfo {
 	typeMap := make(map[string]*TypeInfo)
 
-	for _, entry := range schemas {
-		typeMap[entry.Name] = &TypeInfo{
+	// Add Go types
+	for name := range goTypes {
+		typeMap[name] = &TypeInfo{
+			Location: TypeLocationGolang,
+			Reason:   reasons[name],
+		}
+	}
+
+	// Add Proto types
+	for name := range protoTypes {
+		typeMap[name] = &TypeInfo{
 			Location: TypeLocationProto,
 			Reason:   "",
 		}
