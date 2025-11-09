@@ -597,3 +597,106 @@ message Order {
 	assert.NotNil(t, result.TypeMap)
 	assert.Equal(t, expected, string(result.Protobuf))
 }
+
+func TestOneOfWithDiscriminatorAccepted(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+    Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        bark:
+          type: string
+    Cat:
+      type: object
+      properties:
+        petType:
+          type: string
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.NotNil(t, result.TypeMap)
+}
+
+func TestOneOfWithoutDiscriminatorRejected(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+    Dog:
+      type: object
+      properties:
+        bark:
+          type: string
+    Cat:
+      type: object
+      properties:
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.ErrorContains(t, err, "oneOf requires discriminator")
+	require.Nil(t, result)
+}
+
+func TestOneOfWithInlineVariantRejected(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - type: object
+          properties:
+            bark:
+              type: string
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+    Cat:
+      type: object
+      properties:
+        meow:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.ErrorContains(t, err, "must use $ref")
+	require.Nil(t, result)
+}

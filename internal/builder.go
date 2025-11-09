@@ -62,9 +62,23 @@ type ProtoEnumValue struct {
 // BuildMessages processes all schemas and returns messages
 func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) error {
 	for _, entry := range entries {
-		// Check if it's an enum schema first
 		schema := entry.Proxy.Schema()
-		if schema != nil && isEnumSchema(schema) {
+		if schema == nil {
+			continue
+		}
+
+		// Validate schema first
+		if err := validateTopLevelSchema(schema, entry.Name); err != nil {
+			return err
+		}
+
+		// Skip oneOf schemas for now (will be handled as Go code in later phases)
+		if len(schema.OneOf) > 0 {
+			continue
+		}
+
+		// Check if it's an enum schema
+		if isEnumSchema(schema) {
 			_, err := buildEnum(entry.Name, entry.Proxy, ctx)
 			if err != nil {
 				return err
@@ -88,11 +102,6 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoMes
 			return nil, SchemaError(name, fmt.Sprintf("failed to resolve schema: %v", err))
 		}
 		return nil, SchemaError(name, "schema is nil")
-	}
-
-	// Validate schema for unsupported features at top-level
-	if err := validateTopLevelSchema(schema, name); err != nil {
-		return nil, err
 	}
 
 	// Check if it's an object type
@@ -180,11 +189,6 @@ func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, 
 			return nil, SchemaError(name, fmt.Sprintf("failed to resolve schema: %v", err))
 		}
 		return nil, SchemaError(name, "schema is nil")
-	}
-
-	// Validate schema for unsupported features at top-level
-	if err := validateTopLevelSchema(schema, name); err != nil {
-		return nil, err
 	}
 
 	enumName := ctx.Tracker.UniqueName(ToPascalCase(name))
@@ -321,7 +325,20 @@ func validateTopLevelSchema(schema *base.Schema, schemaName string) error {
 	}
 
 	if len(schema.OneOf) > 0 {
-		return UnsupportedSchemaError(schemaName, "oneOf")
+		// Require discriminator
+		if schema.Discriminator == nil || schema.Discriminator.PropertyName == "" {
+			return fmt.Errorf("schema '%s': oneOf requires discriminator", schemaName)
+		}
+
+		// Require all variants to be $ref (no inline schemas)
+		for i, variant := range schema.OneOf {
+			if !variant.IsReference() {
+				return fmt.Errorf("schema '%s': oneOf variant %d must use $ref, inline schemas not supported", schemaName, i)
+			}
+		}
+
+		// Valid oneOf - will be handled as Go code
+		return nil
 	}
 
 	if schema.Not != nil {

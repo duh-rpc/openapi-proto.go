@@ -138,7 +138,7 @@ func TestUnsupportedOneOf(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "oneOf at top level",
+			name: "oneOf at top level without discriminator",
 			given: `
 openapi: 3.0.0
 info:
@@ -157,10 +157,10 @@ components:
             width:
               type: number
 `,
-			expected: "uses 'oneOf' which is not supported",
+			expected: "oneOf requires discriminator",
 		},
 		{
-			name: "oneOf in property",
+			name: "oneOf in property with inline schemas",
 			given: `
 openapi: 3.0.0
 info:
@@ -176,7 +176,7 @@ components:
             - type: string
             - type: integer
 `,
-			expected: "uses 'oneOf' which is not supported",
+			expected: "oneOf in property 'identifier' requires discriminator",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

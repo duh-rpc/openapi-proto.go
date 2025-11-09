@@ -237,7 +237,20 @@ func validateSchema(schema *base.Schema, propertyName string) error {
 	}
 
 	if len(schema.OneOf) > 0 {
-		return fmt.Errorf("property '%s' uses 'oneOf' which is not supported", propertyName)
+		// Require discriminator
+		if schema.Discriminator == nil || schema.Discriminator.PropertyName == "" {
+			return fmt.Errorf("oneOf in property '%s' requires discriminator", propertyName)
+		}
+
+		// Require all variants to be $ref (no inline schemas)
+		for i, variant := range schema.OneOf {
+			if !variant.IsReference() {
+				return fmt.Errorf("oneOf variant %d in property '%s' must use $ref, inline schemas not supported", i, propertyName)
+			}
+		}
+
+		// Valid oneOf - will be handled as Go code
+		return nil
 	}
 
 	if schema.Not != nil {
