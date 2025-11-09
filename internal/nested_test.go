@@ -144,7 +144,8 @@ message Order {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -256,7 +257,8 @@ message Profile {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -394,5 +396,6 @@ message User {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }

@@ -139,7 +139,8 @@ message Flags {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -185,7 +186,8 @@ message User {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestArrayOfInlineObjects(t *testing.T) {
@@ -228,7 +230,8 @@ message Company {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, singularExpected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, singularExpected, string(result.Protobuf))
 }
 
 func TestArrayOfInlineEnums(t *testing.T) {
@@ -275,7 +278,8 @@ message Config {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, singularExpected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, singularExpected, string(result.Protobuf))
 }
 
 func TestArrayPluralName(t *testing.T) {

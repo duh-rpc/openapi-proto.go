@@ -102,7 +102,8 @@ message Response {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -149,7 +150,8 @@ message MixedNaming {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestConvertFieldNameSanitization(t *testing.T) {
@@ -273,7 +275,8 @@ message Test {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -424,7 +427,8 @@ message Test {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -523,7 +527,8 @@ message Test {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -622,7 +627,8 @@ message Test {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }

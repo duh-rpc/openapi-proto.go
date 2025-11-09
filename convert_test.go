@@ -8,6 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// assertProtoOnlyTypeMap validates that all schemas in TypeMap are proto-only
+func assertProtoOnlyTypeMap(t *testing.T, result *conv.ConvertResult, expectedSchemas []string) {
+	require.NotNil(t, result.TypeMap)
+	assert.Len(t, result.TypeMap, len(expectedSchemas))
+
+	for _, schema := range expectedSchemas {
+		info, exists := result.TypeMap[schema]
+		require.True(t, exists, "schema %s not in TypeMap", schema)
+		assert.Equal(t, conv.TypeLocationProto, info.Location)
+		assert.Empty(t, info.Reason)
+	}
+}
+
 func TestConvertBasics(t *testing.T) {
 	for _, test := range []struct {
 		name     string
@@ -89,11 +102,15 @@ paths: {}
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
+				require.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Empty(t, result.Golang)
+			assert.NotNil(t, result.TypeMap)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -142,11 +159,15 @@ paths: {}
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
+				require.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Empty(t, result.Golang)
+			assert.NotNil(t, result.TypeMap)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -222,9 +243,47 @@ components:
 			})
 
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Empty(t, result.Golang)
+			assert.NotNil(t, result.TypeMap)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
+}
+
+func TestConvertTypeMapValidation(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+    Product:
+      type: object
+      properties:
+        title:
+          type: string
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assertProtoOnlyTypeMap(t, result, []string{"User", "Product", "Order"})
 }
 
 func TestConvertSimpleMessage(t *testing.T) {
@@ -306,11 +365,15 @@ components:
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
+				require.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Empty(t, result.Golang)
+			assert.NotNil(t, result.TypeMap)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
@@ -355,7 +418,10 @@ message Order {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Empty(t, result.Golang)
+	assert.NotNil(t, result.TypeMap)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestConvertCompleteExample(t *testing.T) {
@@ -526,5 +592,8 @@ message Order {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Empty(t, result.Golang)
+	assert.NotNil(t, result.TypeMap)
+	assert.Equal(t, expected, string(result.Protobuf))
 }

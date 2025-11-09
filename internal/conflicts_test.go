@@ -144,7 +144,8 @@ enum Item_2 {
 				PackagePath: "github.com/example/proto/v1",
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }

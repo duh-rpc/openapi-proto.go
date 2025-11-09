@@ -44,7 +44,8 @@ enum Status {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestEnumWithDashes(t *testing.T) {
@@ -81,7 +82,8 @@ enum Status {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestEnumWithNumbers(t *testing.T) {
@@ -120,7 +122,8 @@ enum Code {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestEnumWithDescription(t *testing.T) {
@@ -157,7 +160,8 @@ enum Status {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestInlineEnum(t *testing.T) {
@@ -204,7 +208,8 @@ message User {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestMultipleInlineEnums(t *testing.T) {
@@ -260,7 +265,8 @@ message User {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }
 
 func TestEnumAndMessageMixed(t *testing.T) {
@@ -315,5 +321,6 @@ enum Priority {
 		PackagePath: "github.com/example/proto/v1",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, expected, string(result))
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
 }

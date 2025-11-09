@@ -57,10 +57,11 @@ components:
 		PackagePath: "github.com/example/proto/v1/testapi",
 	})
 	require.NoError(t, err)
+	require.NotNil(t, result)
 
 	dir := t.TempDir()
 	protoFile := filepath.Join(dir, "test.proto")
-	err = os.WriteFile(protoFile, result, 0644)
+	err = os.WriteFile(protoFile, result.Protobuf, 0644)
 	require.NoError(t, err)
 
 	bufYAML := `version: v2

@@ -174,11 +174,13 @@ message Event {
 
 			if test.wantErr != "" {
 				require.ErrorContains(t, err, test.wantErr)
+				require.Nil(t, result)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, string(result))
+			require.NotNil(t, result)
+			assert.Equal(t, test.expected, string(result.Protobuf))
 		})
 	}
 }
