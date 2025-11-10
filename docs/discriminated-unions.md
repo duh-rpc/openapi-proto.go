@@ -1,10 +1,16 @@
 # Discriminated Unions and OneOf
 
-This document explains why OpenAPI `oneOf` with discriminators cannot be converted to Protocol Buffer `oneof` fields, and what alternatives you can use instead.
+This document explains how OpenAPI `oneOf` with discriminators is handled by this library, why it cannot be converted to Protocol Buffer `oneof` fields, and the Go code generation approach used instead.
 
 ## Overview
 
-**Discriminated unions are not supported** by this library. OpenAPI's `oneOf` with discriminators and Protocol Buffer's `oneof` produce **fundamentally incompatible JSON formats**. A client generated from an OpenAPI specification cannot communicate with a server using the protobuf definition due to structural differences in the JSON representation.
+**OneOf with discriminators is now supported** through Go code generation. OpenAPI's `oneOf` with discriminators and Protocol Buffer's `oneof` produce **fundamentally incompatible JSON formats**. To maintain complete JSON compatibility with the OpenAPI specification, schemas containing unions are generated as **Go structs with custom JSON marshaling** instead of protobuf messages.
+
+This approach:
+- ✅ Maintains exact OpenAPI JSON format compatibility
+- ✅ Provides type-safe union handling in Go
+- ✅ Supports case-insensitive discriminator matching
+- ✅ Automatically handles transitive dependencies (types referencing unions)
 
 ## The Incompatibility
 
@@ -108,7 +114,230 @@ When you try to use them together:
 
 The protobuf unmarshaler cannot parse the flat JSON format because it expects the wrapper object. Similarly, an OpenAPI client cannot parse the wrapped format the protobuf server returns.
 
-## Alternative Approaches
+## Go Code Generation Solution
+
+This library solves the incompatibility by generating Go structs with custom JSON marshaling for union types. The approach follows the **oapi-codegen pattern** where union types contain pointer fields to each variant, with custom `MarshalJSON` and `UnmarshalJSON` methods that produce the flat OpenAPI JSON format.
+
+### Generated Go Code Pattern
+
+For a `Pet` union with `Dog` and `Cat` variants:
+
+**OpenAPI Schema:**
+```yaml
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+  discriminator:
+    propertyName: petType
+
+Dog:
+  type: object
+  properties:
+    petType:
+      type: string
+      enum: [dog]
+    bark:
+      type: string
+
+Cat:
+  type: object
+  properties:
+    petType:
+      type: string
+      enum: [cat]
+    meow:
+      type: string
+```
+
+**Generated Go Code:**
+```go
+package mypkg
+
+import (
+    "encoding/json"
+    "fmt"
+    "strings"
+)
+
+// Union wrapper with pointer fields to variants
+type Pet struct {
+    Dog *Dog
+    Cat *Cat
+}
+
+// Custom marshaling to match flat OpenAPI JSON
+func (u *Pet) MarshalJSON() ([]byte, error) {
+    if u.Dog != nil {
+        return json.Marshal(u.Dog)
+    }
+    if u.Cat != nil {
+        return json.Marshal(u.Cat)
+    }
+    return nil, fmt.Errorf("Pet: no variant set")
+}
+
+func (u *Pet) UnmarshalJSON(data []byte) error {
+    var discriminator struct {
+        PetType string `json:"petType"`
+    }
+    if err := json.Unmarshal(data, &discriminator); err != nil {
+        return err
+    }
+
+    // Case-insensitive discriminator matching
+    switch strings.ToLower(discriminator.PetType) {
+    case "dog":
+        u.Dog = &Dog{}
+        return json.Unmarshal(data, u.Dog)
+    case "cat":
+        u.Cat = &Cat{}
+        return json.Unmarshal(data, u.Cat)
+    default:
+        return fmt.Errorf("unknown petType: %s", discriminator.PetType)
+    }
+}
+
+// Variant types as separate structs
+type Dog struct {
+    PetType string `json:"petType"`
+    Bark    string `json:"bark"`
+}
+
+type Cat struct {
+    PetType string `json:"petType"`
+    Meow    string `json:"meow"`
+}
+```
+
+**JSON Format** (matches OpenAPI spec exactly):
+```json
+{"petType": "dog", "bark": "woof"}
+```
+
+### Transitive Closure Behavior
+
+When a schema contains or references a union, it must be generated as Go code (not protobuf). This applies transitively:
+
+**Example Schema Set:**
+```yaml
+Address:
+  type: object
+  properties:
+    street: {type: string}
+
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+  discriminator:
+    propertyName: petType
+
+Dog:
+  type: object
+  properties:
+    petType: {type: string}
+    bark: {type: string}
+
+Cat:
+  type: object
+  properties:
+    petType: {type: string}
+    meow: {type: string}
+
+Owner:
+  type: object
+  properties:
+    name: {type: string}
+    pet:
+      $ref: '#/components/schemas/Pet'
+```
+
+**Classification Result:**
+- **Address** → Proto (no union connection)
+- **Pet** → Go (contains oneOf)
+- **Dog** → Go (variant of union type Pet)
+- **Cat** → Go (variant of union type Pet)
+- **Owner** → Go (references union type Pet)
+
+The `ConvertResult.TypeMap` provides complete visibility:
+```go
+result, err := conv.Convert(openapi, opts)
+
+for typeName, info := range result.TypeMap {
+    fmt.Printf("%s: %s (%s)\n", typeName, info.Location, info.Reason)
+}
+// Output:
+// Address: proto ()
+// Pet: golang (contains oneOf)
+// Dog: golang (variant of union type Pet)
+// Cat: golang (variant of union type Pet)
+// Owner: golang (references union type Pet)
+```
+
+### What's Supported
+
+**Phase 1 Support (Current):**
+- ✅ `oneOf` with discriminators
+- ✅ `$ref`-based variants only (no inline schemas)
+- ✅ Case-insensitive discriminator matching
+- ✅ Explicit discriminator.mapping overrides
+- ✅ Transitive closure (types referencing unions become Go types)
+- ✅ Custom JSON marshaling/unmarshaling
+
+**Not Supported (Future Phases):**
+- ❌ `oneOf` without discriminators
+- ❌ Inline oneOf variants (must use `$ref`)
+- ❌ `anyOf`, `allOf`, `not`
+- ❌ Nested unions (unions within unions)
+
+### Requirements
+
+For a oneOf schema to be accepted:
+
+1. **Must have discriminator**: `discriminator.propertyName` is required
+2. **Variants must use $ref**: All oneOf items must be `$ref` references
+3. **Discriminator in variants**: Each variant must include the discriminator property
+4. **Case-insensitive matching**: Discriminator values are matched case-insensitively to schema names
+
+**Valid Example:**
+```yaml
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+  discriminator:
+    propertyName: petType
+
+Dog:
+  type: object
+  properties:
+    petType:
+      type: string
+      enum: [dog]
+    bark:
+      type: string
+```
+
+**Invalid Examples:**
+```yaml
+# Missing discriminator - ERROR
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+
+# Inline variant - ERROR
+Pet:
+  oneOf:
+    - type: object
+      properties:
+        bark: {type: string}
+  discriminator:
+    propertyName: petType
+```
+
+## Alternative Approaches (If Go Generation Doesn't Work)
 
 Since discriminated unions cannot be directly converted, here are alternative patterns you can use:
 
@@ -255,23 +484,25 @@ You might wonder why this library doesn't automatically handle the conversion. H
 
 ## Best Practices
 
-1. **Design for compatibility**: If you need both OpenAPI and protobuf definitions, avoid `oneOf` patterns in your API design from the start.
+1. **Use Go generation for unions**: The library's Go code generation with custom marshaling maintains perfect OpenAPI JSON compatibility while providing type safety.
 
-2. **Use Option 2 for polymorphism**: The flexible schema approach (Option 2) provides the best balance of compatibility and functionality.
+2. **Check TypeMap**: Use `ConvertResult.TypeMap` to understand which types are generated as Go vs protobuf and why.
 
-3. **Document your choice**: Whichever approach you choose, document it clearly in your API documentation so clients know what to expect.
+3. **Meet requirements**: Ensure your oneOf schemas have discriminators and use `$ref`-based variants (not inline schemas).
 
-4. **Consider your use case**: If you only need one format (either REST with OpenAPI OR RPC with protobuf), you don't need to worry about this limitation.
+4. **Consider alternatives**: If Go generation doesn't fit your use case, the alternative approaches below may work better for your specific scenario.
 
-## Related Issues
+## Related Schema Composition Features
 
-This limitation affects any schema composition features that would map to protobuf `oneof`:
+Schema composition support status:
 
-- ❌ `oneOf` with discriminators
-- ❌ `anyOf` (would also map to `oneof`)
-- ❌ Polymorphic schemas with inheritance
+- ✅ `oneOf` with discriminators (generates Go code)
+- ❌ `oneOf` without discriminators (requires discriminator)
+- ❌ `anyOf` (future phase)
+- ❌ `allOf` (future phase)
+- ❌ `not` (future phase)
 
-For now, these features are not supported by this library. If you have a compelling use case that requires these features, please open an issue to discuss potential solutions.
+If you have a compelling use case that requires unsupported features, please open an issue to discuss potential solutions.
 
 ## Further Reading
 

@@ -38,16 +38,29 @@ func main() {
         panic(err)
     }
 
-    // Convert to proto3
-    proto, err := conv.Convert(openapi, "myapi")
+    // Convert to proto3 and Go
+    result, err := conv.Convert(openapi, conv.ConvertOptions{
+        PackageName: "myapi",
+        PackagePath: "github.com/example/proto/v1",
+    })
     if err != nil {
         panic(err)
     }
 
-    // Write proto file
-    err = os.WriteFile("api.proto", proto, 0644)
-    if err != nil {
-        panic(err)
+    // Write proto file (if generated)
+    if len(result.Protobuf) > 0 {
+        err = os.WriteFile("api.proto", result.Protobuf, 0644)
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    // Write Go file (if generated - for types with unions)
+    if len(result.Golang) > 0 {
+        err = os.WriteFile("types.go", result.Golang, 0644)
+        if err != nil {
+            panic(err)
+        }
     }
 }
 ```
@@ -94,6 +107,198 @@ message User {
 }
 ```
 
+## Union Support with OneOf
+
+This library supports OpenAPI `oneOf` schemas with discriminators by generating **Go structs with custom JSON marshaling** instead of Protocol Buffer messages. This approach maintains complete JSON compatibility with the OpenAPI specification while avoiding protobuf's incompatible `oneof` format.
+
+### Why Go Code Generation?
+
+OpenAPI's `oneOf` with discriminators produces flat JSON like `{"petType": "dog", "bark": "woof"}`, but protobuf's `oneof` wraps the variant: `{"dog": {"petType": "dog", "bark": "woof"}}`. These formats are incompatible. To maintain OpenAPI's JSON contract, union types are generated as Go code with custom marshaling. See [discriminated-unions.md](docs/discriminated-unions.md) for details.
+
+### Basic Union Example
+
+**OpenAPI:**
+```yaml
+openapi: 3.0.0
+info:
+  title: Pet API
+  version: 1.0.0
+components:
+  schemas:
+    Pet:
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      discriminator:
+        propertyName: petType
+
+    Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+          enum: [dog]
+        bark:
+          type: string
+
+    Cat:
+      type: object
+      properties:
+        petType:
+          type: string
+          enum: [cat]
+        meow:
+          type: string
+```
+
+**Generated Go Code:**
+```go
+package mypkg
+
+import (
+    "encoding/json"
+    "fmt"
+    "strings"
+)
+
+// Union wrapper with pointer fields to variants
+type Pet struct {
+    Dog *Dog
+    Cat *Cat
+}
+
+// Custom marshaling to match flat OpenAPI JSON
+func (u *Pet) MarshalJSON() ([]byte, error) {
+    if u.Dog != nil {
+        return json.Marshal(u.Dog)
+    }
+    if u.Cat != nil {
+        return json.Marshal(u.Cat)
+    }
+    return nil, fmt.Errorf("Pet: no variant set")
+}
+
+func (u *Pet) UnmarshalJSON(data []byte) error {
+    var discriminator struct {
+        PetType string `json:"petType"`
+    }
+    if err := json.Unmarshal(data, &discriminator); err != nil {
+        return err
+    }
+
+    // Case-insensitive discriminator matching
+    switch strings.ToLower(discriminator.PetType) {
+    case "dog":
+        u.Dog = &Dog{}
+        return json.Unmarshal(data, u.Dog)
+    case "cat":
+        u.Cat = &Cat{}
+        return json.Unmarshal(data, u.Cat)
+    default:
+        return fmt.Errorf("unknown petType: %s", discriminator.PetType)
+    }
+}
+
+type Dog struct {
+    PetType string `json:"petType"`
+    Bark    string `json:"bark"`
+}
+
+type Cat struct {
+    PetType string `json:"petType"`
+    Meow    string `json:"meow"`
+}
+```
+
+**JSON Format** (matches OpenAPI spec exactly):
+```json
+{"petType": "dog", "bark": "woof"}
+```
+
+### Using ConvertResult and TypeMap
+
+When schemas contain unions, `Convert()` returns a `ConvertResult` with separate proto and Go outputs:
+
+```go
+result, err := conv.Convert(openapi, conv.ConvertOptions{
+    PackageName:   "myapi",
+    PackagePath:   "github.com/example/proto/v1",
+    GoPackagePath: "github.com/example/types/v1",  // Optional, defaults to PackagePath
+})
+if err != nil {
+    panic(err)
+}
+
+// TypeMap tells you where each type is generated
+for typeName, info := range result.TypeMap {
+    fmt.Printf("%s: %s (%s)\n", typeName, info.Location, info.Reason)
+}
+// Output:
+// Pet: golang (contains oneOf)
+// Dog: golang (variant of union type Pet)
+// Cat: golang (variant of union type Pet)
+// Owner: golang (references union type Pet)
+// Address: proto ()
+
+// Protobuf contains types that don't use unions
+if len(result.Protobuf) > 0 {
+    os.WriteFile("api.proto", result.Protobuf, 0644)
+}
+
+// Golang contains union types and anything that references them
+if len(result.Golang) > 0 {
+    os.WriteFile("types.go", result.Golang, 0644)
+}
+```
+
+### Transitive Closure for Union Types
+
+When a schema contains or references a union, it becomes a Go type. This applies transitively:
+
+- **Union types** (Pet with oneOf) → Go
+- **Union variants** (Dog, Cat referenced in oneOf) → Go
+- **Types referencing unions** (Owner with `pet: $ref Pet`) → Go
+- **Proto-only types** (Address with no union connection) → Proto
+
+The `TypeMap` provides complete visibility into why each type is generated where it is.
+
+### Union Requirements
+
+For Phase 1 support, unions must meet these requirements:
+
+- **Discriminator required**: All `oneOf` schemas must have a `discriminator.propertyName`
+- **Reference-based variants**: All variants must use `$ref` (no inline schemas)
+- **Discriminator in variants**: Each variant schema must include the discriminator property
+- **Case-insensitive matching**: Discriminator values match schema names case-insensitively
+
+**Supported:**
+```yaml
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+  discriminator:
+    propertyName: petType
+```
+
+**Not supported (will error):**
+```yaml
+# Missing discriminator
+Pet:
+  oneOf:
+    - $ref: '#/components/schemas/Dog'
+    - $ref: '#/components/schemas/Cat'
+
+# Inline variant (not $ref)
+Pet:
+  oneOf:
+    - type: object
+      properties:
+        bark: {type: string}
+  discriminator:
+    propertyName: petType
+```
+
 ## Supported Features
 
 ### OpenAPI Features
@@ -118,8 +323,10 @@ message User {
 ## Unsupported Features
 
 ### OpenAPI Features Not Supported
-- ❌ Schema composition: `allOf`, `anyOf`, `oneOf`, `not`
-- ❌ Polymorphism and discriminators - [see why](docs/discriminated-unions.md)
+- ✅ `oneOf` with discriminators (generates Go code with custom marshaling)
+- ❌ Schema composition: `allOf`, `anyOf`, `not`
+- ❌ `oneOf` without discriminators
+- ❌ Inline oneOf variants (must use `$ref`)
 - ❌ External file references (only internal `#/components/schemas` refs)
 - ❌ Nested arrays (e.g., `array` of `array`)
 - ❌ Multi-type properties (e.g., `type: [string, null]`)
@@ -414,7 +621,7 @@ See the following links for more details:
 - [Enums](docs/enums.md) - How string enums are converted and their limitations
 - [Scalar Types](docs/scalar.md) - Type mapping between OpenAPI and proto3
 - [Objects](docs/objects.md) - Message generation and nested objects
-- [Discriminated Unions](docs/discriminated-unions.md) - Why oneOf is not supported and alternatives
+- [Discriminated Unions](docs/discriminated-unions.md) - How oneOf with discriminators generates Go code
 
 ## License
 

@@ -1833,7 +1833,7 @@ Update documentation to explain union support, type map usage, and API changes.
 
 ### Changes Required:
 
-#### 1. Update README
+#### 1. Update README ✓
 **File**: `README.md`
 **Changes**: Add union support section
 
@@ -1845,7 +1845,7 @@ Update documentation to explain union support, type map usage, and API changes.
 - Link to discriminated-unions.md for design rationale
 - Note that GoPackagePath defaults to PackagePath
 
-#### 2. Update Discriminated Unions Doc
+#### 2. Update Discriminated Unions Doc ✓
 **File**: `docs/discriminated-unions.md`
 **Changes**: Update to reflect new support
 
@@ -1859,7 +1859,7 @@ Update documentation to explain union support, type map usage, and API changes.
 - Keep existing explanation of why proto oneOf doesn't work
 - Add "What's Supported" section listing oneOf with discriminator
 
-#### 3. API Migration Guide
+#### 3. API Migration Guide ✓
 **File**: `docs/api-migration.md` (new file)
 **Changes**: Document API changes
 
