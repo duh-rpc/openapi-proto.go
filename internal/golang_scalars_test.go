@@ -42,9 +42,17 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        value:
+          type: integer` + formatLine + `
+    Cat:
       type: object
       properties:
         petType:
@@ -92,10 +100,18 @@ components:
   schemas:
     Pet:
       oneOf:
+        - $ref: '#/components/schemas/Cat'
         - $ref: '#/components/schemas/Dog'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        value:
+          type: number` + formatLine + `
+    Cat:
       type: object
       properties:
         petType:
@@ -150,9 +166,17 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        value:
+          type: string` + formatLine + `
+    Cat:
       type: object
       properties:
         petType:
@@ -203,9 +227,19 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        values:
+          type: array
+          items:
+            ` + test.itemsType + `
+    Cat:
       type: object
       properties:
         petType:
@@ -241,9 +275,19 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        toys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Toy'
+    Cat:
       type: object
       properties:
         petType:
@@ -283,9 +327,21 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Event'
+        - $ref: '#/components/schemas/Task'
       discriminator:
         propertyName: eventType
     Event:
+      type: object
+      properties:
+        eventType:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+    Task:
       type: object
       properties:
         eventType:
@@ -324,6 +380,7 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/AllTypes'
+        - $ref: '#/components/schemas/SomeTypes'
       discriminator:
         propertyName: type
     AllTypes:
@@ -386,6 +443,16 @@ components:
           format: binary
         boolVal:
           type: boolean
+    SomeTypes:
+      type: object
+      properties:
+        type:
+          type: string
+        stringVal:
+          type: string
+        int32Val:
+          type: integer
+          format: int32
 `
 
 	result, err := conv.Convert([]byte(given), conv.ConvertOptions{

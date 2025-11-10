@@ -378,6 +378,11 @@ func validateTopLevelSchema(schema *base.Schema, schemaName string) error {
 	}
 
 	if len(schema.OneOf) > 0 {
+		// Require at least 2 variants
+		if len(schema.OneOf) < 2 {
+			return fmt.Errorf("schema '%s': oneOf must have at least 2 variants", schemaName)
+		}
+
 		// Require discriminator
 		if schema.Discriminator == nil || schema.Discriminator.PropertyName == "" {
 			return fmt.Errorf("schema '%s': oneOf requires discriminator", schemaName)

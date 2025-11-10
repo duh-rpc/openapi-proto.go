@@ -201,11 +201,13 @@ components:
     Union1:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Bird'
       discriminator:
         propertyName: type
     Union2:
       oneOf:
         - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Fish'
       discriminator:
         propertyName: type
     Dog:
@@ -215,12 +217,26 @@ components:
           type: string
         bark:
           type: string
+    Bird:
+      type: object
+      properties:
+        type:
+          type: string
+        chirp:
+          type: string
     Cat:
       type: object
       properties:
         type:
           type: string
         meow:
+          type: string
+    Fish:
+      type: object
+      properties:
+        type:
+          type: string
+        swim:
           type: string
     Container:
       type: object
@@ -278,9 +294,17 @@ components:
     Union:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: type
     Dog:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+    Cat:
       type: object
       properties:
         type:

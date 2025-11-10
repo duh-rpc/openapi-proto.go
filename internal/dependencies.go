@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 )
@@ -126,13 +125,10 @@ func extractVariantNames(oneOf []*base.SchemaProxy) []string {
 	for _, variant := range oneOf {
 		if variant.IsReference() {
 			ref := variant.GetReference()
-			// Extract name from reference path
-			parts := strings.Split(ref, "/")
-			if len(parts) > 0 {
-				name := parts[len(parts)-1]
-				if name != "" {
-					variants = append(variants, name)
-				}
+			// Use extractReferenceName for proper validation
+			name, err := extractReferenceName(ref)
+			if err == nil && name != "" {
+				variants = append(variants, name)
 			}
 		}
 	}

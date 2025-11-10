@@ -7,7 +7,17 @@ import (
 	"github.com/duh-rpc/openapi-proto.go/internal/parser"
 )
 
-// ConvertResult contains the outputs from converting OpenAPI to proto3 and Go code
+// ConvertResult contains the outputs from converting OpenAPI to proto3 and Go code.
+//
+// When schemas contain oneOf with discriminators, a hybrid approach is used:
+//   - Protobuf contains types that don't use unions (may be empty if all types use unions)
+//   - Golang contains union types, their variants, and any types that reference them
+//   - TypeMap provides metadata about where each type was generated and why
+//
+// Output field behavior:
+//   - Protobuf is empty when all schemas are union-related (use unions or reference union types)
+//   - Golang is empty when no schemas contain or reference oneOf unions
+//   - Both may contain content when schemas are mixed (some use unions, some don't)
 type ConvertResult struct {
 	Protobuf []byte
 	Golang   []byte

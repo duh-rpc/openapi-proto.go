@@ -154,9 +154,17 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: petType
     Dog:
+      type: object
+      properties:
+        petType:
+          type: string
+        name:
+          type: string
+    Cat:
       type: object
       properties:
         petType:
@@ -191,9 +199,19 @@ components:
     Pet:
       oneOf:
         - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       discriminator:
         propertyName: pet_type
     Dog:
+      type: object
+      properties:
+        pet_type:
+          type: string
+        HTTPStatus:
+          type: string
+        camelCase:
+          type: string
+    Cat:
       type: object
       properties:
         pet_type:

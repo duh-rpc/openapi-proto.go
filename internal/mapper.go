@@ -207,10 +207,10 @@ func extractReferenceName(ref string) (string, error) {
 		return "", fmt.Errorf("reference string is empty")
 	}
 
-	// Split by '/' and take the last segment
+	// Split by '/' and validate standard format: "#/components/schemas/Name"
 	parts := strings.Split(ref, "/")
-	if len(parts) == 0 {
-		return "", fmt.Errorf("invalid reference format: %s", ref)
+	if len(parts) < 4 || parts[0] != "#" || parts[1] != "components" || parts[2] != "schemas" {
+		return "", fmt.Errorf("invalid reference format: %s (expected #/components/schemas/Name)", ref)
 	}
 
 	name := parts[len(parts)-1]
