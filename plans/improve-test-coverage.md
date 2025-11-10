@@ -238,13 +238,18 @@ func TestDependencyGraphSiblingReferences(t *testing.T)
 
 ## Phase 4: Union/OneOf - Variant Edge Cases
 
+- [x] Implemented `internal/unions_test.go` with 7 test functions
+- [x] All tests passing with `go test ./internal -run TestUnion`
+- [x] Full test suite still passing with `make test`
+- [x] Phase 4 completed and verified
+
 ### Overview
 Test union/oneOf scenarios with 3+ variants, nested unions (unions containing unions), arrays of unions, and discriminator edge cases. Validates error handling and correct Go marshaling generation.
 
 ### Changes Required
 
 #### 1. New Test File: Union Edge Cases
-**File**: `internal/unions_test.go`
+**File**: `internal/unions_test.go` ✅
 **Purpose**: Test oneOf/discriminator edge cases through functional API
 
 ```go
