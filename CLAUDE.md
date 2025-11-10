@@ -43,9 +43,12 @@ func TestScenarioName(t *testing.T) {
     },
   } {
     t.Run(test.name, func(t *testing.T) {
-      result, err := conv.Convert([]byte(test.given), "testpkg")
+      result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+        PackageName: "testpkg",
+        PackagePath: "github.com/example/proto/v1",
+      })
       require.NoError(t, err)
-      assert.Equal(t, test.expected, string(result))
+      assert.Equal(t, test.expected, string(result.Protobuf))
     })
   }
 }
