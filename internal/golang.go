@@ -366,8 +366,8 @@ func mapGoArrayType(schema *base.Schema, propProxy *base.SchemaProxy, ctx *GoCon
 	return "[]" + elementType, nil
 }
 
-// extractPackageName extracts package name from full Go package path
-func extractPackageName(packagePath string) string {
+// ExtractPackageName extracts package name from full Go package path
+func ExtractPackageName(packagePath string) string {
 	if packagePath == "" {
 		return "main"
 	}

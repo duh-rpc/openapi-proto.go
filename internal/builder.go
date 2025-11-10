@@ -30,10 +30,11 @@ func NewContext() *Context {
 
 // ProtoMessage represents a proto3 message definition
 type ProtoMessage struct {
-	Name        string
-	Description string
-	Fields      []*ProtoField
-	Nested      []*ProtoMessage
+	Name           string
+	Description    string
+	Fields         []*ProtoField
+	Nested         []*ProtoMessage
+	OriginalSchema string // Original schema name before name tracker renaming
 }
 
 // ProtoField represents a proto3 field
@@ -131,10 +132,11 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 	}
 
 	msg := &ProtoMessage{
-		Name:        ctx.Tracker.UniqueName(ToPascalCase(name)),
-		Description: schema.Description,
-		Fields:      []*ProtoField{},
-		Nested:      []*ProtoMessage{},
+		Name:           ctx.Tracker.UniqueName(ToPascalCase(name)),
+		Description:    schema.Description,
+		Fields:         []*ProtoField{},
+		Nested:         []*ProtoMessage{},
+		OriginalSchema: name,
 	}
 
 	fieldTracker := NewNameTracker()
@@ -300,10 +302,11 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 	msgName = ctx.Tracker.UniqueName(msgName)
 
 	msg := &ProtoMessage{
-		Name:        msgName,
-		Description: schema.Description,
-		Fields:      []*ProtoField{},
-		Nested:      []*ProtoMessage{},
+		Name:           msgName,
+		Description:    schema.Description,
+		Fields:         []*ProtoField{},
+		Nested:         []*ProtoMessage{},
+		OriginalSchema: propertyName, // For nested messages, use property name
 	}
 
 	fieldTracker := NewNameTracker()
