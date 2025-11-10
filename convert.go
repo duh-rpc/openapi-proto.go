@@ -101,17 +101,21 @@ func Convert(openapi []byte, opts ConvertOptions) (*ConvertResult, error) {
 	typeMap := buildTypeMap(goTypes, protoTypes, reasons)
 
 	// Generate proto for proto-only types
-	protoMessages := filterProtoMessages(ctx.Messages, protoTypes)
-	// Create new context with filtered messages
-	protoCtx := internal.NewContext()
-	protoCtx.Messages = protoMessages
-	protoCtx.Enums = ctx.Enums
-	protoCtx.Definitions = filterProtoDefinitions(ctx.Definitions, protoTypes)
-	protoCtx.UsesTimestamp = ctx.UsesTimestamp
+	// Skip proto generation only if there are Go types but no proto types
+	var protoBytes []byte
+	if len(protoTypes) > 0 || len(goTypes) == 0 {
+		protoMessages := filterProtoMessages(ctx.Messages, protoTypes)
+		// Create new context with filtered messages
+		protoCtx := internal.NewContext()
+		protoCtx.Messages = protoMessages
+		protoCtx.Enums = ctx.Enums
+		protoCtx.Definitions = filterProtoDefinitions(ctx.Definitions, protoTypes)
+		protoCtx.UsesTimestamp = ctx.UsesTimestamp
 
-	protoBytes, err := internal.Generate(opts.PackageName, opts.PackagePath, protoCtx)
-	if err != nil {
-		return nil, err
+		protoBytes, err = internal.Generate(opts.PackageName, opts.PackagePath, protoCtx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Generate Go for Go-only types
