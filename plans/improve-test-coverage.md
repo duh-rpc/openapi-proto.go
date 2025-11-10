@@ -299,13 +299,18 @@ func TestUnionMultipleUnionFields(t *testing.T)
 
 ## Phase 5: Union/OneOf - Runtime JSON Validation
 
+- [x] Implemented `internal/unions_runtime_test.go` with 6 test functions
+- [x] All tests passing with `go test ./internal -run TestUnionJSON`
+- [x] Full test suite still passing with `make test`
+- [x] Phase 5 completed and verified
+
 ### Overview
 Create comprehensive runtime tests that compile and execute generated Go code to validate JSON marshaling/unmarshaling for unions with edge cases including case-insensitive discriminators, empty variants, and unknown discriminator values.
 
 ### Changes Required
 
 #### 1. Extended Runtime Tests
-**File**: `internal/unions_runtime_test.go`
+**File**: `internal/unions_runtime_test.go` ✅
 **Purpose**: Compile and execute generated Go code to validate runtime behavior
 
 ```go
