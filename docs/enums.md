@@ -1,237 +1,455 @@
 # Enum Conversion
 
-This document explains how OpenAPI string enums are converted to Protocol Buffer 3 enums, and the important limitations you need to understand.
+This document explains how the library handles OpenAPI enums, distinguishing between string enums and integer enums to preserve JSON wire format compatibility.
 
 ## Overview
 
-Protocol Buffers (proto3) only supports **integer enums**, while OpenAPI supports **string enums**. When this library converts an OpenAPI specification to proto3, string enum values are transformed into uppercase enum constant names.
+The library handles two types of enums differently:
 
-## Conversion Example
+- **String enums** (type: string + enum) → `string` fields with enum values in comments
+- **Integer enums** (type: integer + enum) → Protocol Buffer enum types
 
-### OpenAPI Input
+This approach ensures JSON wire format compatibility: string values remain strings in JSON, not integers or enum constant names.
 
+## String Enums
+
+String enums are mapped to `string` fields with enum values documented in comments. This preserves the original JSON wire format where enum values are transmitted as their literal string values.
+
+### Basic Example
+
+**OpenAPI Input:**
 ```yaml
 components:
   schemas:
-    Status:
-      type: string
-      enum:
-        - active
-        - inactive
-        - pending
+    Order:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the order
+          enum:
+            - pending
+            - confirmed
+            - shipped
 ```
 
-### Proto3 Output
-
-```proto
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
-  STATUS_PENDING = 3;
+**Proto3 Output:**
+```protobuf
+message Order {
+  // Status of the order
+  // enum: [pending, confirmed, shipped]
+  string status = 1 [json_name = "status"];
 }
 ```
 
-## How It Works
+**JSON Wire Format:**
+```json
+{
+  "status": "pending"
+}
+```
 
-1. **UNSPECIFIED Value**: Proto3 requires the first enum value to be `0`. We automatically add `<NAME>_UNSPECIFIED = 0`.
+The JSON contains the exact string value `"pending"`, maintaining full compatibility with the OpenAPI specification.
+
+### Referenced String Enums
+
+Top-level string enum schemas referenced via `$ref` are handled the same way:
+
+**OpenAPI Input:**
+```yaml
+components:
+  schemas:
+    OrderStatus:
+      type: string
+      description: Status of an order
+      enum:
+        - pending
+        - confirmed
+        - shipped
+
+    Order:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+```
+
+**Proto3 Output:**
+```protobuf
+message Order {
+  // Status of an order
+  // enum: [pending, confirmed, shipped]
+  string status = 1 [json_name = "status"];
+}
+```
+
+Note that no standalone `OrderStatus` enum definition is generated - the enum values are documented directly on the field that references it.
+
+### String Enums in Arrays
+
+String enums in arrays become `repeated string` fields:
+
+**OpenAPI Input:**
+```yaml
+components:
+  schemas:
+    Article:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+            enum:
+              - draft
+              - published
+              - archived
+```
+
+**Proto3 Output:**
+```protobuf
+message Article {
+  // enum: [draft, published, archived]
+  repeated string tags = 1 [json_name = "tags"];
+}
+```
+
+## Integer Enums
+
+Integer enums are mapped to Protocol Buffer enum types, following proto3 conventions.
+
+### Basic Example
+
+**OpenAPI Input:**
+```yaml
+components:
+  schemas:
+    Code:
+      type: integer
+      enum:
+        - 200
+        - 400
+        - 404
+        - 500
+```
+
+**Proto3 Output:**
+```protobuf
+enum Code {
+  CODE_UNSPECIFIED = 0;
+  CODE_200 = 1;
+  CODE_400 = 2;
+  CODE_404 = 3;
+  CODE_500 = 4;
+}
+```
+
+### How It Works
+
+1. **UNSPECIFIED Value**: Proto3 requires the first enum value to be `0`. An `<NAME>_UNSPECIFIED = 0` value is automatically added.
 
 2. **Value Transformation**: Original enum values are converted to uppercase with the enum name as a prefix:
-   - `"active"` → `STATUS_ACTIVE`
-   - `"in-progress"` → `STATUS_IN_PROGRESS` (dashes converted to underscores)
-   - `"404"` → `STATUS_404` (numbers preserved)
+   - `200` → `CODE_200`
+   - `404` → `CODE_404`
 
 3. **Value Numbering**: Original values start at `1` and increment sequentially.
 
-## Important Limitation: Original String Values Are Not Preserved
+### Integer Enums in Messages
 
-**The original OpenAPI string values are lost during conversion.** Protocol Buffers enums are fundamentally integer types with symbolic names, not string types.
+When a message field references an integer enum, the field description is cleared (not duplicated) since the description is hoisted to the enum definition:
 
-### What You Get When Unmarshalling
-
-#### From Binary Protobuf
-
-```go
-import pb "your/generated/proto/package"
-
-var msg pb.MyMessage
-proto.Unmarshal(data, &msg)
-
-// msg.Status is an integer enum value
-switch msg.Status {
-case pb.Status_STATUS_ACTIVE:
-    fmt.Println("Status is active")
-case pb.Status_STATUS_INACTIVE:
-    fmt.Println("Status is inactive")
-}
-
-// Get the enum constant name as a string
-name := msg.Status.String()  // Returns "STATUS_ACTIVE"
-```
-
-#### From JSON (Proto3 JSON Mapping)
-
-When using proto3's JSON encoding, enums are represented as strings containing the **enum constant name**, not the original OpenAPI value:
-
-```json
-{
-  "status": "STATUS_ACTIVE"
-}
-```
-
-**Not** the original:
-```json
-{
-  "status": "active"
-}
-```
-
-## Workarounds
-
-If you need to recover the original lowercase string values from OpenAPI, here are three approaches:
-
-### Option 1: String Conversion Function
-
-Transform the enum constant name back to the original format:
-
-```go
-func StatusToOriginalValue(status pb.Status) string {
-    name := status.String()                    // "STATUS_ACTIVE"
-    name = strings.TrimPrefix(name, "STATUS_") // "ACTIVE"
-    return strings.ToLower(name)               // "active"
-}
-
-// Usage
-originalValue := StatusToOriginalValue(msg.Status)  // "active"
-```
-
-**Caveat**: This won't work correctly for enums with dashes:
-- `STATUS_IN_PROGRESS` → `"in_progress"` (not `"in-progress"`)
-
-### Option 2: Maintain a Mapping
-
-Create a bidirectional mapping in your code:
-
-```go
-var statusToString = map[pb.Status]string{
-    pb.Status_STATUS_ACTIVE:   "active",
-    pb.Status_STATUS_INACTIVE: "inactive",
-    pb.Status_STATUS_PENDING:  "pending",
-}
-
-var stringToStatus = map[string]pb.Status{
-    "active":   pb.Status_STATUS_ACTIVE,
-    "inactive": pb.Status_STATUS_INACTIVE,
-    "pending":  pb.Status_STATUS_PENDING,
-}
-
-// Usage
-originalValue := statusToString[msg.Status]  // "active"
-enumValue := stringToStatus["active"]        // pb.Status_STATUS_ACTIVE
-```
-
-**Pros**: Exact control over string values, handles dashes correctly.
-
-**Cons**: Requires manual maintenance when enums change.
-
-### Option 3: Use String Fields Instead
-
-If you need exact string preservation and don't need the type safety of enums, define the field as a string in your OpenAPI spec without enum constraints:
-
+**OpenAPI Input:**
 ```yaml
 components:
   schemas:
-    User:
+    HttpCode:
+      type: integer
+      description: Standard HTTP status codes
+      enum:
+        - 200
+        - 404
+        - 500
+
+    Response:
       type: object
       properties:
-        status:
-          type: string
-          description: "Status values: active, inactive, pending"
+        code:
+          $ref: '#/components/schemas/HttpCode'
 ```
 
-This generates:
+**Proto3 Output:**
+```protobuf
+// Standard HTTP status codes
+enum HttpCode {
+  HTTP_CODE_UNSPECIFIED = 0;
+  HTTP_CODE_200 = 1;
+  HTTP_CODE_404 = 2;
+  HTTP_CODE_500 = 3;
+}
 
-```proto
-message User {
-  string status = 1;
+message Response {
+  HttpCode code = 1 [json_name = "code"];
 }
 ```
 
-**Pros**: Original string values preserved exactly.
+## Wire Format Compatibility
 
-**Cons**: No type safety, no compile-time validation.
+The key difference between string and integer enums is JSON wire format:
 
-## Inline Enums
+### String Enum Wire Format
 
-Inline enums defined within object properties are automatically hoisted to top-level enum definitions:
+String enums preserve exact string values in JSON:
 
-### OpenAPI Input
+```json
+{
+  "status": "pending"
+}
+```
 
+This matches the OpenAPI specification exactly. The protobuf field is `string`, so JSON serialization uses the actual string value.
+
+### Integer Enum Wire Format
+
+Integer enums use proto3's standard enum JSON encoding:
+
+```json
+{
+  "code": "CODE_200"
+}
+```
+
+The JSON contains the enum constant name (e.g., `CODE_200`), not the original integer value (`200`). This is proto3's standard behavior for enum fields.
+
+## When to Use Each Type
+
+### Use String Enums When:
+
+- You need exact JSON wire format compatibility with an existing API
+- The enum represents categorical string values (e.g., statuses, types, categories)
+- You're designing a new API and prefer string-based enums for readability
+- External systems expect literal string values in JSON
+
+### Use Integer Enums When:
+
+- The enum represents numeric codes (HTTP status codes, error codes)
+- You want protobuf's type safety for enum values
+- You're okay with enum constant names in JSON (e.g., `"CODE_200"` instead of `200`)
+
+## Validation Rules
+
+The converter enforces validation rules for enum schemas to prevent ambiguity and ensure correctness:
+
+### Required: Explicit Type Field
+
+All enum schemas must have an explicit `type` field (`string` or `integer`). Type inference is not supported.
+
+**Valid:**
+```yaml
+Status:
+  type: string
+  enum: [active, inactive]
+```
+
+**Invalid (will error):**
+```yaml
+Status:
+  enum: [active, inactive]  # Error: enum must have explicit type field
+```
+
+### Rejected: Null Values
+
+Enums cannot contain null values.
+
+**Valid:**
+```yaml
+Status:
+  type: string
+  enum: [active, inactive, unknown]
+```
+
+**Invalid (will error):**
+```yaml
+Status:
+  type: string
+  enum: [active, inactive, null]  # Error: enum cannot contain null values
+```
+
+### Rejected: Mixed Types
+
+All enum values must be the same type (all strings or all integers).
+
+**Valid:**
+```yaml
+Code:
+  type: integer
+  enum: [200, 404, 500]
+```
+
+**Invalid (will error):**
+```yaml
+Code:
+  type: integer
+  enum: [200, "404", 500]  # Error: enum contains mixed types (string and integer)
+```
+
+### Allowed: Empty Enums
+
+Empty enum arrays are allowed and result in no enum comment being generated:
+
+**Valid:**
+```yaml
+Status:
+  type: string
+  enum: []
+```
+
+**Generated:**
+```protobuf
+message Order {
+  string status = 1 [json_name = "status"];
+}
+```
+
+No `// enum: []` comment is generated for empty enums.
+
+### Allowed: Duplicate Values
+
+Duplicate enum values are allowed (no deduplication is performed):
+
+**Valid:**
+```yaml
+Status:
+  type: string
+  enum: [active, active, inactive]
+```
+
+**Generated:**
+```protobuf
+message Order {
+  // enum: [active, active, inactive]
+  string status = 1 [json_name = "status"];
+}
+```
+
+### Case Sensitivity
+
+Enum values are case-sensitive. `"Active"` and `"active"` are treated as distinct values:
+
+**Valid:**
+```yaml
+Status:
+  type: string
+  enum: [Active, active, ACTIVE]
+```
+
+All three values are preserved as distinct.
+
+## Special Characters in String Enums
+
+String enum values can contain special characters, which are preserved in the comment:
+
+**OpenAPI Input:**
 ```yaml
 components:
   schemas:
-    User:
-      type: object
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-          enum:
-            - active
-            - inactive
+    Tag:
+      type: string
+      enum:
+        - foo bar
+        - a"b
+        - c[d]
 ```
 
-### Proto3 Output
+**Proto3 Output:**
+```protobuf
+message Article {
+  // enum: [foo bar, a"b, c[d]]
+  string tag = 1 [json_name = "tag"];
+}
+```
 
-```proto
+Values with spaces, quotes, or brackets require no escaping in proto comments.
+
+## Linter Integration
+
+The validation rules documented above are enforced by the converter at build time. External linters can implement the same validation rules to provide earlier feedback during development:
+
+- Enum must have explicit type field (string or integer)
+- Enum cannot contain null values
+- Enum cannot contain mixed types
+- Empty enum arrays are allowed
+- Duplicate enum values are allowed
+- Enum values are case-sensitive
+
+By implementing these rules in a linter, you can catch enum schema issues before running the converter.
+
+## Migration from Previous Versions
+
+**Breaking Change:** Previous versions of this library converted all enums (both string and integer) to protobuf enum types. This broke JSON wire format compatibility for string enums.
+
+**Before (all enums → protobuf enums):**
+```yaml
+Status:
+  type: string
+  enum: [active, inactive]
+```
+
+Generated:
+```protobuf
 enum Status {
   STATUS_UNSPECIFIED = 0;
   STATUS_ACTIVE = 1;
   STATUS_INACTIVE = 2;
 }
+```
 
+JSON wire format:
+```json
+{"status": "STATUS_ACTIVE"}  // ❌ Wrong - should be "active"
+```
+
+**After (string enums → string fields):**
+```yaml
+Status:
+  type: string
+  enum: [active, inactive]
+```
+
+Generated:
+```protobuf
 message User {
-  string name = 1;
-  Status status = 2;
+  // enum: [active, inactive]
+  string status = 1 [json_name = "status"];
 }
 ```
 
-The enum is named after the property name (`status` → `Status`).
+JSON wire format:
+```json
+{"status": "active"}  // ✅ Correct - exact match
+```
 
-## Enum Value Naming Rules
+If you have existing code that relies on the old behavior, you'll need to:
 
-The library applies these transformations to enum values:
-
-1. Convert to UPPERCASE
-2. Replace dashes (`-`) with underscores (`_`)
-3. Preserve numbers as-is
-4. Prefix with `<ENUM_NAME>_`
-
-### Examples
-
-| OpenAPI Value | Proto3 Constant      |
-|---------------|----------------------|
-| `active`      | `STATUS_ACTIVE`      |
-| `in-progress` | `STATUS_IN_PROGRESS` |
-| `404`         | `CODE_404`           |
-| `not-found`   | `ERROR_NOT_FOUND`    |
+1. Update any code expecting protobuf enum types for string enums
+2. Verify JSON serialization now uses string values instead of enum constant names
+3. Update tests expecting enum constant names in JSON
 
 ## Best Practices
 
-1. **Document the limitation**: Make sure your team understands that enum constant names, not original values, are used in JSON serialization.
+1. **Use explicit types**: Always specify `type: string` or `type: integer` for enums, never rely on type inference.
 
-2. **Consider your use case**:
-   - If you need exact string preservation for external APIs, consider using string fields instead of enums.
-   - If type safety is more important than exact string values, use enums and apply one of the workarounds.
+2. **Choose the right enum type**:
+   - Use string enums for categorical values that should be human-readable in JSON
+   - Use integer enums for numeric codes where type safety is more important than readability
 
-3. **Naming conventions**: Use clear, descriptive enum values in your OpenAPI spec since they become the basis for proto3 constant names:
-   - Good: `active`, `inactive`, `pending`
-   - Avoid: `a`, `i`, `p` (too cryptic)
+3. **Document enum values**: Add descriptions to enum schemas - for string enums, the description appears with the enum comment.
 
-4. **Avoid frequent changes**: Since you may need to maintain mappings (Option 2), try to stabilize your enum values early in development.
+4. **Consider external APIs**: If you're building an API consumed by external systems, string enums provide better compatibility since the JSON contains literal values.
+
+5. **Validate early**: Use linters to validate enum schemas during development rather than waiting for build-time errors.
 
 ## Further Reading
 
 - [Protocol Buffers Enum Documentation](https://protobuf.dev/programming-guides/proto3/#enum)
 - [Proto3 JSON Mapping](https://protobuf.dev/programming-guides/proto3/#json)
+- [OpenAPI Enum Specification](https://swagger.io/specification/#schema-object)

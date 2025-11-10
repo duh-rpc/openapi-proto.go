@@ -304,7 +304,8 @@ Pet:
 ### OpenAPI Features
 - ✅ Object schemas with properties
 - ✅ Scalar types (string, integer, number, boolean)
-- ✅ Enums (top-level and inline)
+- ✅ String enums (mapped to string fields with enum comments)
+- ✅ Integer enums (mapped to protobuf enum types)
 - ✅ Arrays (repeated fields)
 - ✅ Nested objects
 - ✅ Schema references (`$ref`)
@@ -349,22 +350,24 @@ Pet:
 
 ## Type Mapping
 
-| OpenAPI Type | OpenAPI Format | Proto3 Type |
-|--------------|----------------|-------------|
-| string       | (none)         | string      |
-| string       | byte           | bytes       |
-| string       | binary         | bytes       |
-| string       | date           | string      |
-| string       | date-time      | string      |
-| integer      | (none)         | int32       |
-| integer      | int32          | int32       |
-| integer      | int64          | int64       |
-| number       | (none)         | double      |
-| number       | float          | float       |
-| number       | double         | double      |
-| boolean      | (any)          | bool        |
-| object       | (any)          | message     |
-| array        | (any)          | repeated    |
+| OpenAPI Type | OpenAPI Format | Proto3 Type | Notes |
+|--------------|----------------|-------------|-------|
+| string       | (none)         | string      |       |
+| string       | byte           | bytes       |       |
+| string       | binary         | bytes       |       |
+| string       | date           | string      |       |
+| string       | date-time      | string      |       |
+| string + enum | (none)        | string      | Enum values in comments |
+| integer      | (none)         | int32       |       |
+| integer      | int32          | int32       |       |
+| integer      | int64          | int64       |       |
+| integer + enum | (none)       | enum        | Protobuf enum type |
+| number       | (none)         | double      |       |
+| number       | float          | float       |       |
+| number       | double         | double      |       |
+| boolean      | (any)          | bool        |       |
+| object       | (any)          | message     |       |
+| array        | (any)          | repeated    |       |
 
 ## Naming Conventions
 
@@ -422,14 +425,15 @@ Schema names and nested message names are converted to PascalCase:
 - `user_account` → `UserAccount`
 - `shippingAddress` → `ShippingAddress`
 
-### Enum Values: UPPERCASE_SNAKE_CASE
+### Enum Values: UPPERCASE_SNAKE_CASE (Integer Enums Only)
 
-Enum values are prefixed with the enum name and converted to uppercase:
-- Enum `Status` with value `active` → `STATUS_ACTIVE`
-- Enum `Status` with value `in-progress` → `STATUS_IN_PROGRESS`
-- Enum `Code` with value `401` → `CODE_401`
+Integer enum values are prefixed with the enum name and converted to uppercase:
+- Enum `Code` with value `200` → `CODE_200`
+- Enum `Code` with value `404` → `CODE_404`
 
-All enums automatically include an `UNSPECIFIED` value at position 0 following proto3 conventions.
+All integer enums automatically include an `UNSPECIFIED` value at position 0 following proto3 conventions.
+
+String enums do not generate protobuf enum types - they become `string` fields with enum values documented in comments.
 
 ### Plural Name Validation
 
@@ -463,25 +467,64 @@ properties:
 
 ### Enums
 
+The library handles string enums and integer enums differently to preserve JSON wire format compatibility.
+
+#### String Enums
+
+String enums map to `string` fields with enum value annotations in comments:
+
 **OpenAPI:**
 ```yaml
 components:
   schemas:
-    Status:
-      type: string
-      enum:
-        - active
-        - pending
-        - inactive
+    Order:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the order
+          enum:
+            - pending
+            - confirmed
+            - shipped
 ```
 
 **Proto3:**
 ```protobuf
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_PENDING = 2;
-  STATUS_INACTIVE = 3;
+message Order {
+  // Status of the order
+  // enum: [pending, confirmed, shipped]
+  string status = 1 [json_name = "status"];
+}
+```
+
+String enums preserve JSON wire format exactly - the JSON will contain `"pending"` not `1` or `"ORDER_STATUS_PENDING"`.
+
+#### Integer Enums
+
+Integer enums map to protobuf enum types:
+
+**OpenAPI:**
+```yaml
+components:
+  schemas:
+    Code:
+      type: integer
+      enum:
+        - 200
+        - 400
+        - 404
+        - 500
+```
+
+**Proto3:**
+```protobuf
+enum Code {
+  CODE_UNSPECIFIED = 0;
+  CODE_200 = 1;
+  CODE_400 = 2;
+  CODE_404 = 3;
+  CODE_500 = 4;
 }
 ```
 
