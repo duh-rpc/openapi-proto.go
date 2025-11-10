@@ -969,7 +969,7 @@ The following table shows how OpenAPI types/formats map to Go types (compared to
 
 ### Changes Required:
 
-#### 1. Go Type Structures
+#### 1. Go Type Structures ✓
 **File**: `internal/golang.go` (new file)
 **Changes**: Define Go-specific IR structures
 
@@ -1016,7 +1016,7 @@ func NewGoContext(packageName string) *GoContext
 - UnionVariants lists variant type names for union structs
 - DiscriminatorMap built from schema.Discriminator.Mapping or inferred
 
-#### 2. Go Builder Functions
+#### 2. Go Builder Functions ✓
 **File**: `internal/golang.go`
 **Changes**: Add builder functions for Go structs
 
@@ -1239,7 +1239,7 @@ func buildDiscriminatorMap(schema *base.Schema, variants []string, schemas map[s
 - Use type mappings table from overview section
 - Set ctx.NeedsTime flag when time.Time is used
 
-#### 3. Type Mapping Functions
+#### 3. Type Mapping Functions ✓
 **File**: `internal/golang.go`
 **Changes**: Implement OpenAPI to Go type mapping
 
@@ -1336,7 +1336,7 @@ func mapGoObjectType(propertyName string, propProxy *base.SchemaProxy, ctx *GoCo
 - Default number format (empty) → float64 for double precision
 - Unknown string formats → string (permissive, Phase 1)
 
-#### 4. Package Name Extraction
+#### 4. Package Name Extraction ✓
 **File**: `internal/golang.go`
 **Changes**: Add package name extraction from Go package path
 
