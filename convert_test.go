@@ -908,7 +908,7 @@ components:
 	assert.Equal(t, "variant of union type C", result.TypeMap["D"].Reason)
 	assert.Equal(t, "variant of union type C", result.TypeMap["E"].Reason)
 	assert.Equal(t, "references union type C", result.TypeMap["B"].Reason)
-	assert.Equal(t, "references union type B", result.TypeMap["A"].Reason)
+	assert.Equal(t, "references union type C", result.TypeMap["A"].Reason)
 }
 
 func TestOneOfBasicGeneration(t *testing.T) {

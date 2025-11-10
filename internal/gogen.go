@@ -110,6 +110,17 @@ func renderUnionMarshal(s *GoStruct) string {
 
 	result.WriteString(fmt.Sprintf("func (u *%s) MarshalJSON() ([]byte, error) {\n", s.Name))
 
+	// Count non-nil variants to ensure exactly one is set
+	result.WriteString("\tcount := 0\n")
+	for _, field := range s.Fields {
+		result.WriteString(fmt.Sprintf("\tif u.%s != nil {\n", field.Name))
+		result.WriteString("\t\tcount++\n")
+		result.WriteString("\t}\n")
+	}
+	result.WriteString("\tif count > 1 {\n")
+	result.WriteString(fmt.Sprintf("\t\treturn nil, fmt.Errorf(\"%s: multiple variants set\")\n", s.Name))
+	result.WriteString("\t}\n\n")
+
 	// Check each variant pointer and marshal the non-nil one
 	for _, field := range s.Fields {
 		result.WriteString(fmt.Sprintf("\tif u.%s != nil {\n", field.Name))
@@ -139,6 +150,12 @@ func renderUnionUnmarshal(s *GoStruct) string {
 	result.WriteString("\tif err := json.Unmarshal(data, &discriminator); err != nil {\n")
 	result.WriteString("\t\treturn err\n")
 	result.WriteString("\t}\n\n")
+
+	// Clear all variant pointers to maintain union invariant
+	for _, field := range s.Fields {
+		result.WriteString(fmt.Sprintf("\tu.%s = nil\n", field.Name))
+	}
+	result.WriteString("\n")
 
 	// Switch on discriminator value (case-insensitive)
 	result.WriteString(fmt.Sprintf("\tswitch strings.ToLower(discriminator.%s) {\n", discriminatorFieldName))

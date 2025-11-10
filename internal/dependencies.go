@@ -53,12 +53,14 @@ func (g *DependencyGraph) MarkUnion(schemaName, reason string, variants []string
 func (g *DependencyGraph) ComputeTransitiveClosure() (goTypes, protoTypes map[string]bool, reasons map[string]string) {
 	goTypes = make(map[string]bool)
 	reasons = make(map[string]string)
+	rootCause := make(map[string]string) // tracks root union type for each Go-only type
 	visited := make(map[string]bool)
 
 	// Mark direct union types
 	for name, reason := range g.unionReasons {
 		goTypes[name] = true
 		reasons[name] = reason
+		rootCause[name] = name // union types are their own root cause
 		visited[name] = true
 	}
 
@@ -68,6 +70,7 @@ func (g *DependencyGraph) ComputeTransitiveClosure() (goTypes, protoTypes map[st
 			if !goTypes[variant] {
 				goTypes[variant] = true
 				reasons[variant] = fmt.Sprintf("variant of union type %s", unionName)
+				rootCause[variant] = unionName // root cause is the union containing this variant
 				visited[variant] = true
 			}
 		}
@@ -94,7 +97,10 @@ func (g *DependencyGraph) ComputeTransitiveClosure() (goTypes, protoTypes map[st
 				if to == current {
 					// Mark 'from' as Go-only because it references a Go-only type
 					goTypes[from] = true
-					reasons[from] = fmt.Sprintf("references union type %s", current)
+					// Use the root cause union type, not the immediate dependency
+					unionType := rootCause[current]
+					reasons[from] = fmt.Sprintf("references union type %s", unionType)
+					rootCause[from] = unionType // propagate root cause
 					visited[from] = true
 					queue = append(queue, from)
 					break
