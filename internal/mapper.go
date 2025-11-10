@@ -8,13 +8,13 @@ import (
 )
 
 // ProtoType returns the proto3 type for an OpenAPI schema.
-// Returns type name, whether it's repeated, and error.
+// Returns type name, whether it's repeated, enum values (for string enums), and error.
 // For inline enums and objects, hoists them appropriately in the context.
 // parentMsg is used for nested messages (can be nil for top-level).
-func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, bool, error) {
+func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, bool, []string, error) {
 	// Validate schema for unsupported features
 	if err := validateSchema(schema, propertyName); err != nil {
-		return "", false, err
+		return "", false, nil, err
 	}
 
 	// Check if it's a reference first
@@ -26,26 +26,32 @@ func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaP
 		if resolvedSchema == nil {
 			// Check if there's a build error (e.g., external reference)
 			if err := propProxy.GetBuildError(); err != nil {
-				return "", false, fmt.Errorf("property '%s' references external file or unresolvable reference: %w", propertyName, err)
+				return "", false, nil, fmt.Errorf("property '%s' references external file or unresolvable reference: %w", propertyName, err)
 			}
-			return "", false, fmt.Errorf("property '%s' has unresolved reference", propertyName)
+			return "", false, nil, fmt.Errorf("property '%s' has unresolved reference", propertyName)
+		}
+
+		// Check if referenced schema is a string enum
+		if isStringEnum(resolvedSchema) {
+			enumValues := extractEnumValues(resolvedSchema)
+			return "string", false, enumValues, nil
 		}
 
 		// Extract the schema name from the reference
 		typeName, err := extractReferenceName(ref)
 		if err != nil {
-			return "", false, fmt.Errorf("property '%s': %w", propertyName, err)
+			return "", false, nil, fmt.Errorf("property '%s': %w", propertyName, err)
 		}
-		return typeName, false, nil
+		return typeName, false, nil, nil
 	}
 
 	// Check if it's an array first
 	if len(schema.Type) > 0 && contains(schema.Type, "array") {
-		itemType, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx, parentMsg)
+		itemType, enumValues, err := ResolveArrayItemType(schema, propertyName, propProxy, ctx, parentMsg)
 		if err != nil {
-			return "", false, err
+			return "", false, nil, err
 		}
-		return itemType, true, nil
+		return itemType, true, enumValues, nil
 	}
 
 	// Check if it's an inline object
@@ -53,35 +59,40 @@ func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaP
 		// Build nested message
 		nestedMsg, err := buildNestedMessage(propertyName, propProxy, ctx, parentMsg)
 		if err != nil {
-			return "", false, err
+			return "", false, nil, err
 		}
-		return nestedMsg.Name, false, nil
+		return nestedMsg.Name, false, nil, nil
 	}
 
 	// Check if it's an enum
 	if isEnumSchema(schema) {
-		// Hoist inline enum to top-level
+		// Check if it's a string enum
+		if isStringEnum(schema) {
+			enumValues := extractEnumValues(schema)
+			return "string", false, enumValues, nil
+		}
+		// Integer enum - hoist to top-level
 		enumName := ToPascalCase(propertyName)
 		_, err := buildEnum(enumName, propProxy, ctx)
 		if err != nil {
-			return "", false, err
+			return "", false, nil, err
 		}
-		return enumName, false, nil
+		return enumName, false, nil, nil
 	}
 
 	if len(schema.Type) == 0 {
-		return "", false, fmt.Errorf("property must have type or $ref")
+		return "", false, nil, fmt.Errorf("property must have type or $ref")
 	}
 
 	if len(schema.Type) > 1 {
-		return "", false, fmt.Errorf("multi-type properties not supported")
+		return "", false, nil, fmt.Errorf("multi-type properties not supported")
 	}
 
 	typ := schema.Type[0]
 	format := schema.Format
 
 	scalarType, err := MapScalarType(ctx, typ, format)
-	return scalarType, false, err
+	return scalarType, false, nil, err
 }
 
 // MapScalarType maps OpenAPI type+format to proto3 scalar type.
@@ -118,86 +129,97 @@ func MapScalarType(ctx *Context, typ, format string) (string, error) {
 }
 
 // ResolveArrayItemType determines the proto3 type for array items.
-// Returns type name, whether it's repeated, and error.
+// Returns type name, enum values (for string enums), and error.
 // For inline objects/enums: validates property name is not plural.
-func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, error) {
+func ResolveArrayItemType(schema *base.Schema, propertyName string, propProxy *base.SchemaProxy, ctx *Context, parentMsg *ProtoMessage) (string, []string, error) {
 	// Check if Items is defined
 	if schema.Items == nil || schema.Items.A == nil {
-		return "", fmt.Errorf("array must have items defined")
+		return "", nil, fmt.Errorf("array must have items defined")
 	}
 
 	itemsProxy := schema.Items.A
 	itemsSchema := itemsProxy.Schema()
 	if itemsSchema == nil {
 		if err := itemsProxy.GetBuildError(); err != nil {
-			return "", fmt.Errorf("failed to resolve array items: %w", err)
+			return "", nil, fmt.Errorf("failed to resolve array items: %w", err)
 		}
-		return "", fmt.Errorf("array items schema is nil")
+		return "", nil, fmt.Errorf("array items schema is nil")
 	}
 
 	// Check for nested arrays
 	if len(itemsSchema.Type) > 0 && contains(itemsSchema.Type, "array") {
-		return "", fmt.Errorf("nested arrays not supported")
+		return "", nil, fmt.Errorf("nested arrays not supported")
 	}
 
 	// Check if it's a reference
 	if itemsProxy.IsReference() {
 		ref := itemsProxy.GetReference()
+		resolvedSchema := itemsProxy.Schema()
+		if resolvedSchema != nil && isStringEnum(resolvedSchema) {
+			enumValues := extractEnumValues(resolvedSchema)
+			return "string", enumValues, nil
+		}
 		if ref != "" {
 			// Extract the last segment of the reference path
 			parts := strings.Split(ref, "/")
 			if len(parts) > 0 {
-				return parts[len(parts)-1], nil
+				return parts[len(parts)-1], nil, nil
 			}
 		}
-		return "", fmt.Errorf("invalid reference format")
+		return "", nil, fmt.Errorf("invalid reference format")
 	}
 
 	// Check if it's an inline enum
 	if isEnumSchema(itemsSchema) {
-		// Validate property name is not plural
+		// Check if it's a string enum
+		if isStringEnum(itemsSchema) {
+			enumValues := extractEnumValues(itemsSchema)
+			return "string", enumValues, nil
+		}
+		// Integer enum - validate property name is not plural
 		if strings.HasSuffix(propertyName, "es") {
-			return "", fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
+			return "", nil, fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
 		}
 		if strings.HasSuffix(propertyName, "s") {
-			return "", fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
+			return "", nil, fmt.Errorf("cannot derive enum name from plural array property '%s'; use singular form or $ref", propertyName)
 		}
 
-		// Hoist inline enum to top-level
+		// Hoist inline integer enum to top-level
 		enumName := ToPascalCase(propertyName)
 		_, err := buildEnum(enumName, itemsProxy, ctx)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
-		return enumName, nil
+		return enumName, nil, nil
 	}
 
 	// Check if it's an inline object
 	if len(itemsSchema.Type) > 0 && contains(itemsSchema.Type, "object") {
 		// Validate property name is not plural
 		if strings.HasSuffix(propertyName, "es") {
-			return "", fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
+			return "", nil, fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
 		}
 		if strings.HasSuffix(propertyName, "s") {
-			return "", fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
+			return "", nil, fmt.Errorf("cannot derive message name from plural array property '%s'; use singular form or $ref", propertyName)
 		}
 
 		// Build nested message for inline object in array
 		nestedMsg, err := buildNestedMessage(propertyName, itemsProxy, ctx, parentMsg)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
-		return nestedMsg.Name, nil
+		return nestedMsg.Name, nil, nil
 	}
 
 	// It's a scalar type
 	if len(itemsSchema.Type) == 0 {
-		return "", fmt.Errorf("array items must have a type")
+		return "", nil, fmt.Errorf("array items must have a type")
 	}
 
 	itemType := itemsSchema.Type[0]
 	format := itemsSchema.Format
-	return MapScalarType(ctx, itemType, format)
+	scalarType, err := MapScalarType(ctx, itemType, format)
+	return scalarType, nil, err
 }
 
 // extractReferenceName extracts the schema name from a reference string.

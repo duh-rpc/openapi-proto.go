@@ -29,14 +29,6 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
-  STATUS_PENDING = 3;
-  STATUS_IS_ACTIVE = 4;
-}
-
 `
 
 	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
@@ -60,7 +52,12 @@ components:
       enum:
         - in-progress
         - not-started
-        - completed`
+        - completed
+    Task:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'`
 
 	expected := `syntax = "proto3";
 
@@ -68,11 +65,9 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_IN_PROGRESS = 1;
-  STATUS_NOT_STARTED = 2;
-  STATUS_COMPLETED = 3;
+message Task {
+  // enum: [in-progress, not-started, completed]
+  string status = 1 [json_name = "status"];
 }
 
 `
@@ -138,7 +133,12 @@ components:
       description: Status of the operation
       enum:
         - active
-        - inactive`
+        - inactive
+    Task:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'`
 
 	expected := `syntax = "proto3";
 
@@ -146,11 +146,10 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-// Status of the operation
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
+message Task {
+  // Status of the operation
+  // enum: [active, inactive]
+  string status = 1 [json_name = "status"];
 }
 
 `
@@ -178,6 +177,7 @@ components:
           type: string
         status:
           type: string
+          description: User status
           enum:
             - active
             - inactive
@@ -189,16 +189,11 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
-  STATUS_NOT_STARTED = 3;
-}
-
 message User {
   string name = 1 [json_name = "name"];
-  Status status = 2 [json_name = "status"];
+  // User status
+  // enum: [active, inactive, notStarted]
+  string status = 2 [json_name = "status"];
 }
 
 `
@@ -240,22 +235,11 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
-}
-
-enum Role {
-  ROLE_UNSPECIFIED = 0;
-  ROLE_ADMIN = 1;
-  ROLE_USER = 2;
-  ROLE_SUPER_ADMIN = 3;
-}
-
 message User {
-  Status status = 1 [json_name = "status"];
-  Role role = 2 [json_name = "role"];
+  // enum: [active, inactive]
+  string status = 1 [json_name = "status"];
+  // enum: [admin, user, superAdmin]
+  string role = 2 [json_name = "role"];
 }
 
 `
@@ -298,20 +282,311 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Status {
-  STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
-}
-
 message User {
   string name = 1 [json_name = "name"];
 }
 
-enum Priority {
-  PRIORITY_UNSPECIFIED = 0;
-  PRIORITY_HIGH = 1;
-  PRIORITY_LOW = 2;
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestStringEnumReference(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Status:
+      type: string
+      enum:
+        - active
+        - inactive
+    Task:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Task {
+  // enum: [active, inactive]
+  string status = 1 [json_name = "status"];
+}
+
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestMixedEnumTypes(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        code:
+          type: integer
+          enum:
+            - 200
+            - 404`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+enum Code {
+  CODE_UNSPECIFIED = 0;
+  CODE_200 = 1;
+  CODE_404 = 2;
+}
+
+message Task {
+  // enum: [active, inactive]
+  string status = 1 [json_name = "status"];
+  Code code = 2 [json_name = "code"];
+}
+
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestStringEnumInArray(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Article:
+      type: object
+      properties:
+        tag:
+          type: array
+          items:
+            type: string
+            enum:
+              - draft
+              - published`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Article {
+  // enum: [draft, published]
+  repeated string tag = 1 [json_name = "tag"];
+}
+
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestStringEnumArrayReference(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    OrderStatus:
+      type: string
+      enum:
+        - pending
+        - shipped
+    Report:
+      type: object
+      properties:
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderStatus'`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Report {
+  // enum: [pending, shipped]
+  repeated string statuses = 1 [json_name = "statuses"];
+}
+
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestEnumValidationErrors(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		given   string
+		wantErr string
+	}{
+		{
+			name: "enum without type field",
+			given: `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Status:
+      enum:
+        - active
+        - inactive`,
+			wantErr: "enum must have explicit type field",
+		},
+		{
+			name: "enum with mixed types",
+			given: `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Code:
+      type: string
+      enum:
+        - active
+        - 200`,
+			wantErr: "enum contains mixed types (string and integer)",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
+			require.Error(t, err)
+			require.ErrorContains(t, err, test.wantErr)
+		})
+	}
+}
+
+func TestStringEnumSpecialCharacters(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        value:
+          type: string
+          enum:
+            - foo bar
+            - a"b
+            - c[d]`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Task {
+  // enum: [foo bar, a"b, c[d]]
+  string value = 1 [json_name = "value"];
+}
+
+`
+
+	result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+		PackageName: "testpkg",
+		PackagePath: "github.com/example/proto/v1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, expected, string(result.Protobuf))
+}
+
+func TestIntegerEnumDescriptionPreserved(t *testing.T) {
+	given := `openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          enum:
+            - 200
+            - 404`
+
+	expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+// HTTP status code
+enum Code {
+  CODE_UNSPECIFIED = 0;
+  CODE_200 = 1;
+  CODE_404 = 2;
+}
+
+message Task {
+  Code code = 1 [json_name = "code"];
 }
 
 `

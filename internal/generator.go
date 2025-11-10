@@ -116,6 +116,10 @@ func renderMessageWithIndent(msg *ProtoMessage, indent string) string {
 			result.WriteString(formatComment(field.Description, indent+"  "))
 		}
 
+		if len(field.EnumValues) > 0 {
+			result.WriteString(formatEnumComment(field.EnumValues, indent+"  "))
+		}
+
 		result.WriteString(indent)
 		result.WriteString("  ")
 		if field.Repeated {
@@ -160,5 +164,24 @@ func formatComment(description, indent string) string {
 		}
 	}
 
+	return result.String()
+}
+
+// formatEnumComment formats enum values as a proto3 comment
+func formatEnumComment(values []string, indent string) string {
+	if len(values) == 0 {
+		return ""
+	}
+
+	var result strings.Builder
+	result.WriteString(indent)
+	result.WriteString("// enum: [")
+	for i, value := range values {
+		if i > 0 {
+			result.WriteString(", ")
+		}
+		result.WriteString(value)
+	}
+	result.WriteString("]\n")
 	return result.String()
 }

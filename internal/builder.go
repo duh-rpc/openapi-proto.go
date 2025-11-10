@@ -45,6 +45,7 @@ type ProtoField struct {
 	JSONName    string
 	Description string
 	Repeated    bool
+	EnumValues  []string
 }
 
 // ProtoEnum represents a proto3 enum definition
@@ -101,6 +102,16 @@ func BuildMessages(entries []*parser.SchemaEntry, ctx *Context) (*DependencyGrap
 
 		// Check if it's an enum schema
 		if isEnumSchema(schema) {
+			// Validate enum schema first
+			if err := validateEnumSchema(schema, entry.Name); err != nil {
+				return nil, err
+			}
+
+			// Check if it's a string enum - skip building protobuf enum
+			if isStringEnum(schema) {
+				continue
+			}
+			// Only build enum for integer enums
 			_, err := buildEnum(entry.Name, entry.Proxy, ctx)
 			if err != nil {
 				return nil, err
@@ -184,7 +195,7 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 				return nil, PropertyError(name, propName, err.Error())
 			}
 			protoFieldName := fieldTracker.UniqueName(sanitizedName)
-			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
+			protoType, repeated, enumValues, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap with PropertyError if the error already contains the property name
 				if strings.Contains(err.Error(), fmt.Sprintf("property '%s'", propName)) {
@@ -193,9 +204,13 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 				return nil, PropertyError(name, propName, err.Error())
 			}
 
-			// For inline objects/enums, description goes to the nested type, not the field
+			// For inline objects and integer enums, description goes to the nested type, not the field
+			// For string enums, keep description on field (not hoisted)
 			fieldDescription := propSchema.Description
-			if len(propSchema.Type) > 0 && (contains(propSchema.Type, "object") || isEnumSchema(propSchema)) {
+			if len(propSchema.Type) > 0 && contains(propSchema.Type, "object") {
+				fieldDescription = ""
+			}
+			if isIntegerEnum(propSchema) {
 				fieldDescription = ""
 			}
 
@@ -205,7 +220,8 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 				Number:      fieldNumber,
 				Description: fieldDescription,
 				Repeated:    repeated,
-				JSONName:    propName, // Always set for consistency and clarity
+				JSONName:    propName,
+				EnumValues:  enumValues,
 			}
 
 			msg.Fields = append(msg.Fields, field)
@@ -231,6 +247,71 @@ func contains(slice []string, item string) bool {
 // isEnumSchema returns true if schema defines an enum
 func isEnumSchema(schema *base.Schema) bool {
 	return len(schema.Enum) > 0
+}
+
+// isStringEnum returns true if schema is a string enum
+func isStringEnum(schema *base.Schema) bool {
+	if schema == nil || len(schema.Enum) == 0 {
+		return false
+	}
+	return len(schema.Type) > 0 && contains(schema.Type, "string")
+}
+
+// isIntegerEnum returns true if schema is an integer enum
+func isIntegerEnum(schema *base.Schema) bool {
+	if schema == nil || len(schema.Enum) == 0 {
+		return false
+	}
+	return len(schema.Type) > 0 && contains(schema.Type, "integer")
+}
+
+// extractEnumValues extracts enum values as strings from schema
+func extractEnumValues(schema *base.Schema) []string {
+	if schema == nil || len(schema.Enum) == 0 {
+		return []string{}
+	}
+
+	values := make([]string, 0, len(schema.Enum))
+	for _, value := range schema.Enum {
+		if value != nil {
+			values = append(values, value.Value)
+		}
+	}
+	return values
+}
+
+// validateEnumSchema validates enum schema and returns error for unsupported cases
+func validateEnumSchema(schema *base.Schema, schemaName string) error {
+	if schema == nil || len(schema.Enum) == 0 {
+		return nil
+	}
+
+	// Check for explicit type field
+	if len(schema.Type) == 0 {
+		return fmt.Errorf("schema '%s': enum must have explicit type field", schemaName)
+	}
+
+	// Check for null values and mixed types
+	var hasString, hasInteger bool
+	for _, value := range schema.Enum {
+		if value == nil || value.Value == "" {
+			return fmt.Errorf("schema '%s': enum cannot contain null values", schemaName)
+		}
+
+		// Check if value looks like an integer
+		if _, err := fmt.Sscanf(value.Value, "%d", new(int)); err == nil {
+			hasInteger = true
+		} else {
+			hasString = true
+		}
+	}
+
+	// Check for mixed types
+	if hasString && hasInteger {
+		return fmt.Errorf("schema '%s': enum contains mixed types (string and integer)", schemaName)
+	}
+
+	return nil
 }
 
 // buildEnum creates a protoEnum from an OpenAPI schema
@@ -325,7 +406,7 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 				return nil, fmt.Errorf("property '%s': %w", propName, err)
 			}
 			protoFieldName := fieldTracker.UniqueName(sanitizedName)
-			protoType, repeated, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
+			protoType, repeated, enumValues, err := ProtoType(propSchema, propName, propProxy, ctx, msg)
 			if err != nil {
 				// Don't wrap if the error already contains the property name
 				if strings.Contains(err.Error(), fmt.Sprintf("property '%s'", propName)) {
@@ -334,9 +415,13 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 				return nil, fmt.Errorf("property '%s': %w", propName, err)
 			}
 
-			// For inline objects/enums, description goes to the nested type, not the field
+			// For inline objects and integer enums, description goes to the nested type, not the field
+			// For string enums, keep description on field (not hoisted)
 			fieldDescription := propSchema.Description
-			if len(propSchema.Type) > 0 && (contains(propSchema.Type, "object") || isEnumSchema(propSchema)) {
+			if len(propSchema.Type) > 0 && contains(propSchema.Type, "object") {
+				fieldDescription = ""
+			}
+			if isIntegerEnum(propSchema) {
 				fieldDescription = ""
 			}
 
@@ -347,6 +432,7 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 				Description: fieldDescription,
 				Repeated:    repeated,
 				JSONName:    propName,
+				EnumValues:  enumValues,
 			}
 
 			msg.Fields = append(msg.Fields, field)

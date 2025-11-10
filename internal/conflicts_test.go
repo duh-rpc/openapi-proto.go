@@ -69,15 +69,15 @@ paths: {}
 components:
   schemas:
     Status:
-      type: string
+      type: integer
       enum:
-        - active
-        - inactive
+        - 1
+        - 2
     status:
-      type: string
+      type: integer
       enum:
-        - pending
-        - completed
+        - 10
+        - 20
 `,
 			expected: `syntax = "proto3";
 
@@ -87,14 +87,14 @@ option go_package = "github.com/example/proto/v1";
 
 enum Status {
   STATUS_UNSPECIFIED = 0;
-  STATUS_ACTIVE = 1;
-  STATUS_INACTIVE = 2;
+  STATUS_1 = 1;
+  STATUS_2 = 2;
 }
 
 enum Status_2 {
   STATUS_2_UNSPECIFIED = 0;
-  STATUS_2_PENDING = 1;
-  STATUS_2_COMPLETED = 2;
+  STATUS_2_10 = 1;
+  STATUS_2_20 = 2;
 }
 
 `,
@@ -114,10 +114,10 @@ components:
         name:
           type: string
     item:
-      type: string
+      type: integer
       enum:
-        - one
-        - two
+        - 1
+        - 2
 `,
 			expected: `syntax = "proto3";
 
@@ -131,8 +131,8 @@ message Item {
 
 enum Item_2 {
   ITEM_2_UNSPECIFIED = 0;
-  ITEM_2_ONE = 1;
-  ITEM_2_TWO = 2;
+  ITEM_2_1 = 1;
+  ITEM_2_2 = 2;
 }
 
 `,

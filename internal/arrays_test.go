@@ -261,15 +261,9 @@ package testpkg;
 
 option go_package = "github.com/example/proto/v1";
 
-enum Level {
-  LEVEL_UNSPECIFIED = 0;
-  LEVEL_LOW = 1;
-  LEVEL_MEDIUM = 2;
-  LEVEL_HIGH = 3;
-}
-
 message Config {
-  repeated Level level = 1 [json_name = "level"];
+  // enum: [low, medium, high]
+  repeated string level = 1 [json_name = "level"];
 }
 
 `
@@ -332,10 +326,20 @@ components:
 `,
 			wantErr: "cannot derive message name from plural array property 'addresses'",
 		},
-		{
-			name: "inline enum with plural name ending in 's'",
-			given: `
-openapi: 3.0.0
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
+			require.Error(t, err)
+			require.ErrorContains(t, err, test.wantErr)
+		})
+	}
+
+	// String enums in arrays are now allowed with plural names
+	t.Run("inline string enum with plural name is allowed", func(t *testing.T) {
+		given := `openapi: 3.0.0
 info:
   title: Test
   version: 1.0.0
@@ -350,42 +354,28 @@ components:
             type: string
             enum:
               - active
-              - inactive
-`,
-			wantErr: "cannot derive enum name from plural array property 'statuses'",
-		},
-		{
-			name: "inline enum with plural name ending in 'es'",
-			given: `
-openapi: 3.0.0
-info:
-  title: Test
-  version: 1.0.0
-components:
-  schemas:
-    Config:
-      type: object
-      properties:
-        matches:
-          type: array
-          items:
-            type: string
-            enum:
-              - exact
-              - partial
-`,
-			wantErr: "cannot derive enum name from plural array property 'matches'",
-		},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
-				PackageName: "testpkg",
-				PackagePath: "github.com/example/proto/v1",
-			})
-			require.Error(t, err)
-			require.ErrorContains(t, err, test.wantErr)
+              - inactive`
+
+		expected := `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Config {
+  // enum: [active, inactive]
+  repeated string statuses = 1 [json_name = "statuses"];
+}
+
+`
+		result, err := conv.Convert([]byte(given), conv.ConvertOptions{
+			PackageName: "testpkg",
+			PackagePath: "github.com/example/proto/v1",
 		})
-	}
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, expected, string(result.Protobuf))
+	})
 }
 
 func TestNestedArrays(t *testing.T) {

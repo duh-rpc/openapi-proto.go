@@ -530,16 +530,6 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/example/proto/v1";
 
-// Status of an order
-enum OrderStatus {
-  ORDER_STATUS_UNSPECIFIED = 0;
-  ORDER_STATUS_PENDING = 1;
-  ORDER_STATUS_CONFIRMED = 2;
-  ORDER_STATUS_SHIPPED = 3;
-  ORDER_STATUS_DELIVERED = 4;
-  ORDER_STATUS_CANCELLED = 5;
-}
-
 // Shipping or billing address
 message Address {
   // Street address
@@ -550,14 +540,6 @@ message Address {
   string country = 5 [json_name = "country"];
 }
 
-enum Category {
-  CATEGORY_UNSPECIFIED = 0;
-  CATEGORY_ELECTRONICS = 1;
-  CATEGORY_CLOTHING = 2;
-  CATEGORY_BOOKS = 3;
-  CATEGORY_HOME = 4;
-}
-
 // Product in the catalog
 message Product {
   // Unique product identifier
@@ -566,7 +548,8 @@ message Product {
   string description = 3 [json_name = "description"];
   double price = 4 [json_name = "price"];
   bool inStock = 5 [json_name = "inStock"];
-  Category category = 6 [json_name = "category"];
+  // enum: [electronics, clothing, books, home]
+  string category = 6 [json_name = "category"];
 }
 
 // Item in an order
@@ -582,7 +565,9 @@ message Order {
   string orderId = 1 [json_name = "orderId"];
   string customerId = 2 [json_name = "customerId"];
   repeated OrderItem item = 3 [json_name = "item"];
-  OrderStatus status = 4 [json_name = "status"];
+  // Status of an order
+  // enum: [pending, confirmed, shipped, delivered, cancelled]
+  string status = 4 [json_name = "status"];
   Address shippingAddress = 5 [json_name = "shippingAddress"];
   double totalAmount = 6 [json_name = "totalAmount"];
   google.protobuf.Timestamp createdAt = 7 [json_name = "createdAt"];
