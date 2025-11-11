@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/duh-rpc/openapi-proto.go/internal/parser"
@@ -140,6 +141,11 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 	// Check if it's an object type
 	if len(schema.Type) == 0 || !contains(schema.Type, "object") {
 		return nil, SchemaError(name, "only objects and enums supported at top level")
+	}
+
+	// Validate field numbers before processing
+	if err := validateFieldNumbers(schema, name); err != nil {
+		return nil, err
 	}
 
 	msg := &ProtoMessage{
@@ -314,6 +320,94 @@ func validateEnumSchema(schema *base.Schema, schemaName string) error {
 	return nil
 }
 
+// extractFieldNumber extracts x-proto-number from schema proxy extensions
+// Returns (number, true, nil) if found and valid
+// Returns (0, false, nil) if not present
+// Returns (0, false, error) if present but invalid format
+func extractFieldNumber(proxy *base.SchemaProxy) (int, bool, error) {
+	schema := proxy.Schema()
+	if schema == nil || schema.Extensions == nil {
+		return 0, false, nil
+	}
+
+	node, found := schema.Extensions.Get("x-proto-number")
+	if !found || node == nil {
+		return 0, false, nil
+	}
+
+	// Parse yaml.Node.Value string to int using strconv.Atoi
+	// This properly rejects decimals like "3.14" unlike fmt.Sscanf
+	num, err := strconv.Atoi(node.Value)
+	if err != nil {
+		return 0, false, fmt.Errorf("x-proto-number must be a valid integer, got: %s", node.Value)
+	}
+
+	return num, true, nil
+}
+
+// hasFieldNumber checks if a schema proxy has x-proto-number extension
+func hasFieldNumber(proxy *base.SchemaProxy) bool {
+	_, found, _ := extractFieldNumber(proxy)
+	return found
+}
+
+// validateFieldNumbers validates x-proto-number extensions on schema properties
+// Returns error if:
+// - Field numbers are duplicated
+// - Field numbers are out of valid range (1 to 536,870,911)
+// - Field numbers use reserved range (19000-19999)
+// - Field number is 0 (invalid)
+func validateFieldNumbers(schema *base.Schema, schemaName string) error {
+	if schema == nil || schema.Properties == nil {
+		return nil
+	}
+
+	// Return nil if schema has 0 properties
+	if schema.Properties.Len() == 0 {
+		return nil
+	}
+
+	// Track seen field numbers to detect duplicates
+	seen := make(map[int]string)
+
+	// Iterate properties in YAML order
+	for propName, propProxy := range schema.Properties.FromOldest() {
+		// Extract field number
+		fieldNum, found, err := extractFieldNumber(propProxy)
+		if err != nil {
+			return PropertyError(schemaName, propName, err.Error())
+		}
+
+		// Skip properties without x-proto-number (mixed mode allowed in Phase 1)
+		if !found {
+			continue
+		}
+
+		// Validate field number constraints
+		if fieldNum < 1 {
+			return PropertyError(schemaName, propName, "x-proto-number must be between 1 and 536870911")
+		}
+
+		if fieldNum > 536870911 {
+			return PropertyError(schemaName, propName, "x-proto-number must be between 1 and 536870911")
+		}
+
+		// Check reserved range (19000-19999)
+		if fieldNum >= 19000 && fieldNum <= 19999 {
+			return PropertyError(schemaName, propName, fmt.Sprintf("x-proto-number %d is in reserved range 19000-19999", fieldNum))
+		}
+
+		// Check for duplicates
+		if existingProp, exists := seen[fieldNum]; exists {
+			return SchemaError(schemaName, fmt.Sprintf("duplicate x-proto-number %d used by properties '%s' and '%s'", fieldNum, existingProp, propName))
+		}
+
+		seen[fieldNum] = propName
+	}
+
+	return nil
+}
+
 // buildEnum creates a protoEnum from an OpenAPI schema
 func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, error) {
 	schema := proxy.Schema()
@@ -381,6 +475,11 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 	// Derive nested message name via PascalCase
 	msgName := ToPascalCase(propertyName)
 	msgName = ctx.Tracker.UniqueName(msgName)
+
+	// Validate field numbers before processing
+	if err := validateFieldNumbers(schema, propertyName); err != nil {
+		return nil, err
+	}
 
 	msg := &ProtoMessage{
 		Name:           msgName,
