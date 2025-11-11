@@ -418,6 +418,10 @@ Enforce the consistency rule: if ANY field in a schema has x-proto-number, then 
 
 ### Changes Required
 
+- [x] Enhanced validateFieldNumbers with all-or-nothing check
+- [x] Integration tests for all-or-nothing validation
+- [x] All tests passing
+
 #### 1. Enhance Field Number Validation
 **File**: `internal/builder.go`
 **Changes**: Modify `validateFieldNumbers()` function to enforce all-or-nothing rule

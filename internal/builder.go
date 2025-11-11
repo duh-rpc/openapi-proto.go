@@ -362,6 +362,7 @@ func extractFieldNumber(proxy *base.SchemaProxy) (int, bool, error) {
 // - Field numbers are out of valid range (1 to 536,870,911)
 // - Field numbers use reserved range (19000-19999)
 // - Field number is 0 (invalid)
+// - Some but not all fields have x-proto-number (all-or-nothing violation)
 func validateFieldNumbers(schema *base.Schema, schemaName string) error {
 	if schema == nil || schema.Properties == nil {
 		return nil
@@ -372,10 +373,25 @@ func validateFieldNumbers(schema *base.Schema, schemaName string) error {
 		return nil
 	}
 
+	// First pass: check all-or-nothing rule
+	totalProps := schema.Properties.Len()
+	annotatedCount := 0
+	for _, propProxy := range schema.Properties.FromOldest() {
+		_, found, _ := extractFieldNumber(propProxy)
+		if found {
+			annotatedCount++
+		}
+	}
+
+	// Enforce all-or-nothing: if any field has x-proto-number, all must have it
+	if annotatedCount > 0 && annotatedCount < totalProps {
+		return SchemaError(schemaName, fmt.Sprintf("x-proto-number must be specified on all fields or none (found on %d of %d fields)", annotatedCount, totalProps))
+	}
+
 	// Track seen field numbers to detect duplicates
 	seen := make(map[int]string)
 
-	// Iterate properties in YAML order
+	// Second pass: validate field number constraints
 	for propName, propProxy := range schema.Properties.FromOldest() {
 		// Extract field number
 		fieldNum, found, err := extractFieldNumber(propProxy)
@@ -383,7 +399,7 @@ func validateFieldNumbers(schema *base.Schema, schemaName string) error {
 			return PropertyError(schemaName, propName, err.Error())
 		}
 
-		// Skip properties without x-proto-number (mixed mode allowed in Phase 1)
+		// Skip properties without x-proto-number (all fields have none if we reach here)
 		if !found {
 			continue
 		}

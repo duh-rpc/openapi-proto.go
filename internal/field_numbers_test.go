@@ -272,7 +272,7 @@ components:
 `,
 		},
 		{
-			name: "mixed schemas pass in phase 1",
+			name: "mixed schemas rejected with all-or-nothing error",
 			given: `openapi: 3.0.0
 info:
   title: Test API
@@ -289,6 +289,7 @@ components:
         name:
           type: string
 `,
+			wantErr: "x-proto-number must be specified on all fields or none",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -504,6 +505,147 @@ message User {
 			})
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, string(result.Protobuf))
+		})
+	}
+}
+
+func TestAllOrNothingValidation(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		given   string
+		wantErr string
+	}{
+		{
+			name: "all fields with x-proto-number passes",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        name:
+          type: string
+          x-proto-number: 2
+        email:
+          type: string
+          x-proto-number: 3
+`,
+		},
+		{
+			name: "no fields with x-proto-number passes",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+`,
+		},
+		{
+			name: "1 of 3 fields with x-proto-number fails",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        name:
+          type: string
+        email:
+          type: string
+`,
+			wantErr: "x-proto-number must be specified on all fields or none (found on 1 of 3 fields)",
+		},
+		{
+			name: "2 of 5 fields with x-proto-number fails",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        name:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+          x-proto-number: 5
+        status:
+          type: string
+`,
+			wantErr: "x-proto-number must be specified on all fields or none (found on 2 of 5 fields)",
+		},
+		{
+			name: "parent and nested validated independently",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        profile:
+          type: object
+          x-proto-number: 2
+          properties:
+            name:
+              type: string
+              x-proto-number: 1
+            age:
+              type: integer
+`,
+			wantErr: "x-proto-number must be specified on all fields or none (found on 1 of 2 fields)",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
+
+			if test.wantErr != "" {
+				require.ErrorContains(t, err, test.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
