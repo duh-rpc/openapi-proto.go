@@ -84,11 +84,23 @@ func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaP
 		return "", false, nil, fmt.Errorf("property must have type or $ref")
 	}
 
+	var typ string
 	if len(schema.Type) > 1 {
-		return "", false, nil, fmt.Errorf("multi-type properties not supported")
-	}
+		nonNullTypes := []string{}
+		for _, t := range schema.Type {
+			if !strings.EqualFold(t, "null") {
+				nonNullTypes = append(nonNullTypes, t)
+			}
+		}
 
-	typ := schema.Type[0]
+		if len(nonNullTypes) != 1 {
+			return "", false, nil, fmt.Errorf("multi-type properties not supported (only nullable variants allowed)")
+		}
+
+		typ = nonNullTypes[0]
+	} else {
+		typ = schema.Type[0]
+	}
 	format := schema.Format
 
 	scalarType, err := MapScalarType(ctx, typ, format)

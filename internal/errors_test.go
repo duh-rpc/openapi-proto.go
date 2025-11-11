@@ -436,7 +436,7 @@ components:
         value:
           type:
             - string
-            - "null"
+            - integer
 `
 
 	_, err := conv.Convert([]byte(given), conv.ConvertOptions{

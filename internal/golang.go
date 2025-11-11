@@ -265,11 +265,23 @@ func goType(schema *base.Schema, propertyName string, propProxy *base.SchemaProx
 		return "", false, fmt.Errorf("property '%s' must have type or $ref", propertyName)
 	}
 
+	var typ string
 	if len(schema.Type) > 1 {
-		return "", false, fmt.Errorf("property '%s' has multi-type which is not supported", propertyName)
-	}
+		nonNullTypes := []string{}
+		for _, t := range schema.Type {
+			if !strings.EqualFold(t, "null") {
+				nonNullTypes = append(nonNullTypes, t)
+			}
+		}
 
-	typ := schema.Type[0]
+		if len(nonNullTypes) != 1 {
+			return "", false, fmt.Errorf("property '%s' has multi-type which is not supported (only nullable variants allowed)", propertyName)
+		}
+
+		typ = nonNullTypes[0]
+	} else {
+		typ = schema.Type[0]
+	}
 	format := schema.Format
 
 	scalarType, err := mapGoScalarType(typ, format, ctx)

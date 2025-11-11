@@ -48,7 +48,7 @@ type ConvertOptions struct {
 	GoPackagePath string
 }
 
-// Convert converts OpenAPI 3.0 schemas to Protocol Buffer 3 format.
+// Convert converts OpenAPI 3.x schemas (3.0, 3.1, 3.2) to Protocol Buffer 3 format.
 // It takes OpenAPI specification bytes (YAML or JSON) and conversion options,
 // and returns a ConvertResult containing proto3 output, Go output, and type metadata.
 //

@@ -1,6 +1,6 @@
 # OpenAPI to Protobuf Converter
 
-A Go library that converts OpenAPI 3.0 schema definitions to Protocol Buffer 3 (proto3) format.
+A Go library that converts OpenAPI 3.x (3.0, 3.1, 3.2) schema definitions to Protocol Buffer 3 (proto3) format.
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/duh-rpc/openapi-proto.go)](https://golang.org/dl/)
 [![CI Status](https://github.com/duh-rpc/openapi-proto.go/workflows/CI/badge.svg)](https://github.com/duh-rpc/openapi-proto.go/actions)
@@ -9,7 +9,7 @@ A Go library that converts OpenAPI 3.0 schema definitions to Protocol Buffer 3 (
 
 ## Overview
 
-This library parses OpenAPI 3.0 specifications and generates corresponding `.proto` files with proper type mappings, JSON field name annotations, and protobuf conventions. It's designed for projects that need to support both OpenAPI and protobuf interfaces.
+This library parses OpenAPI 3.x specifications (3.0, 3.1, and 3.2) and generates corresponding `.proto` files with proper type mappings, JSON field name annotations, and protobuf conventions. It's designed for projects that need to support both OpenAPI and protobuf interfaces.
 
 ## Installation
 
@@ -65,7 +65,7 @@ func main() {
 }
 ```
 
-### Input: OpenAPI 3.0 YAML
+### Input: OpenAPI 3.x YAML
 
 ```yaml
 openapi: 3.0.0
@@ -325,12 +325,13 @@ Pet:
 
 ### OpenAPI Features Not Supported
 - ✅ `oneOf` with discriminators (generates Go code with custom marshaling)
+- ✅ Nullable type arrays (OpenAPI 3.1+ `type: [string, null]` syntax)
 - ❌ Schema composition: `allOf`, `anyOf`, `not`
 - ❌ `oneOf` without discriminators
 - ❌ Inline oneOf variants (must use `$ref`)
 - ❌ External file references (only internal `#/components/schemas` refs)
 - ❌ Nested arrays (e.g., `array` of `array`)
-- ❌ Multi-type properties (e.g., `type: [string, null]`)
+- ❌ Truly multi-type properties (e.g., `type: [string, integer]`) - only nullable variants allowed
 - ❌ Map types via `additionalProperties`
 - ❌ Validation constraints (min, max, pattern, etc. are ignored)
 - ❌ OpenAPI 2.0 (Swagger) - only 3.x supported
@@ -344,9 +345,35 @@ Pet:
 - ❌ `optional` keyword (all fields follow proto3 default semantics)
 - ❌ Wrapper types for nullable fields
 
+### Nullable Field Handling
+
+The library supports nullable types in both OpenAPI 3.0 and 3.1+ syntax:
+
+**OpenAPI 3.0 nullable syntax:**
+```yaml
+properties:
+  name:
+    type: string
+    nullable: true
+```
+
+**OpenAPI 3.1+ type array syntax:**
+```yaml
+properties:
+  name:
+    type: [string, null]
+```
+
+Both are converted to the same proto3 field:
+```protobuf
+string name = 1 [json_name = "name"];
+```
+
+**Important:** Proto3 doesn't have a nullable concept - it uses zero values to indicate "not set" (empty string for strings, 0 for numbers, false for booleans, null for messages). The `nullable` keyword and `null` type are processed but don't change the proto3 output, since proto3 fields are inherently nullable through zero values.
+
 ### Ignored OpenAPI Directives
 - The `required` array is ignored (proto3 has no required keyword)
-- The `nullable` field is ignored (proto3 uses zero values)
+- The `nullable` field is ignored (proto3 uses zero values for optional semantics)
 
 ## Type Mapping
 
