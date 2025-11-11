@@ -220,10 +220,17 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 				fieldDescription = ""
 			}
 
+			// Extract field number from x-proto-number extension if present
+			customFieldNum, hasCustomNum, _ := extractFieldNumber(propProxy)
+			actualFieldNumber := fieldNumber
+			if hasCustomNum {
+				actualFieldNumber = customFieldNum
+			}
+
 			field := &ProtoField{
 				Name:        protoFieldName,
 				Type:        protoType,
-				Number:      fieldNumber,
+				Number:      actualFieldNumber,
 				Description: fieldDescription,
 				Repeated:    repeated,
 				JSONName:    propName,
@@ -231,7 +238,11 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *Dep
 			}
 
 			msg.Fields = append(msg.Fields, field)
-			fieldNumber++
+
+			// Only increment auto-counter if we didn't use a custom number
+			if !hasCustomNum {
+				fieldNumber++
+			}
 		}
 	}
 
@@ -524,10 +535,17 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 				fieldDescription = ""
 			}
 
+			// Extract field number from x-proto-number extension if present
+			customFieldNum, hasCustomNum, _ := extractFieldNumber(propProxy)
+			actualFieldNumber := fieldNumber
+			if hasCustomNum {
+				actualFieldNumber = customFieldNum
+			}
+
 			field := &ProtoField{
 				Name:        protoFieldName,
 				Type:        protoType,
-				Number:      fieldNumber,
+				Number:      actualFieldNumber,
 				Description: fieldDescription,
 				Repeated:    repeated,
 				JSONName:    propName,
@@ -535,7 +553,11 @@ func buildNestedMessage(propertyName string, proxy *base.SchemaProxy, ctx *Conte
 			}
 
 			msg.Fields = append(msg.Fields, field)
-			fieldNumber++
+
+			// Only increment auto-counter if we didn't use a custom number
+			if !hasCustomNum {
+				fieldNumber++
+			}
 		}
 	}
 

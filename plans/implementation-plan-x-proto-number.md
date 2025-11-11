@@ -285,6 +285,11 @@ Integrate the validation and extraction logic into the message building flow. Th
 
 ### Changes Required
 
+- [x] Integrate field extraction into buildMessage
+- [x] Integrate field extraction into buildNestedMessage
+- [x] Integration tests for field extraction
+- [x] All tests passing
+
 #### 1. Integrate Validation into buildMessage
 **File**: `internal/builder.go`
 **Changes**: Modify `buildMessage()` function to call validation before field processing

@@ -385,3 +385,231 @@ message User {
 		})
 	}
 }
+
+func TestBuildMessageWithFieldNumbers(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "non-sequential field numbers",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        email:
+          type: string
+          x-proto-number: 5
+        status:
+          type: string
+          x-proto-number: 10
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message User {
+  string id = 1 [json_name = "id"];
+  string email = 5 [json_name = "email"];
+  string status = 10 [json_name = "status"];
+}
+
+`,
+		},
+		{
+			name: "property order preserved with custom numbers",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        zebra:
+          type: string
+          x-proto-number: 3
+        apple:
+          type: string
+          x-proto-number: 1
+        banana:
+          type: string
+          x-proto-number: 2
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message User {
+  string zebra = 3 [json_name = "zebra"];
+  string apple = 1 [json_name = "apple"];
+  string banana = 2 [json_name = "banana"];
+}
+
+`,
+		},
+		{
+			name: "large field numbers work",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        legacy:
+          type: string
+          x-proto-number: 100000
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message User {
+  string id = 1 [json_name = "id"];
+  string legacy = 100000 [json_name = "legacy"];
+}
+
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result.Protobuf))
+		})
+	}
+}
+
+func TestBuildNestedMessageWithFieldNumbers(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		given    string
+		expected string
+	}{
+		{
+			name: "nested message with field numbers",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        profile:
+          type: object
+          x-proto-number: 2
+          properties:
+            name:
+              type: string
+              x-proto-number: 1
+            age:
+              type: integer
+              x-proto-number: 2
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message User {
+  message Profile {
+    string name = 1 [json_name = "name"];
+    int32 age = 2 [json_name = "age"];
+  }
+
+  string id = 1 [json_name = "id"];
+  Profile profile = 2 [json_name = "profile"];
+}
+
+`,
+		},
+		{
+			name: "nested messages have independent numbering",
+			given: `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          x-proto-number: 1
+        item:
+          type: object
+          x-proto-number: 5
+          properties:
+            id:
+              type: string
+              x-proto-number: 1
+            name:
+              type: string
+              x-proto-number: 2
+`,
+			expected: `syntax = "proto3";
+
+package testpkg;
+
+option go_package = "github.com/example/proto/v1";
+
+message Order {
+  message Item {
+    string id = 1 [json_name = "id"];
+    string name = 2 [json_name = "name"];
+  }
+
+  string id = 1 [json_name = "id"];
+  Item item = 5 [json_name = "item"];
+}
+
+`,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := conv.Convert([]byte(test.given), conv.ConvertOptions{
+				PackageName: "testpkg",
+				PackagePath: "github.com/example/proto/v1",
+			})
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, string(result.Protobuf))
+		})
+	}
+}
