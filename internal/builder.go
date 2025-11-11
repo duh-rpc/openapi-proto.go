@@ -356,12 +356,6 @@ func extractFieldNumber(proxy *base.SchemaProxy) (int, bool, error) {
 	return num, true, nil
 }
 
-// hasFieldNumber checks if a schema proxy has x-proto-number extension
-func hasFieldNumber(proxy *base.SchemaProxy) bool {
-	_, found, _ := extractFieldNumber(proxy)
-	return found
-}
-
 // validateFieldNumbers validates x-proto-number extensions on schema properties
 // Returns error if:
 // - Field numbers are duplicated
