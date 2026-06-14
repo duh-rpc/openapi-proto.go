@@ -205,6 +205,11 @@ func buildMessage(name string, proxy *base.SchemaProxy, ctx *Context, graph *int
 				}
 			}
 
+			// Track dependency for a map<string, Msg> value (additionalProperties: $ref)
+			if mapRef := mapValueReference(propSchema); mapRef != "" {
+				graph.AddDependency(name, mapRef)
+			}
+
 			// Track dependencies in array items
 			if len(propSchema.Type) > 0 && internal.Contains(propSchema.Type, "array") {
 				if propSchema.Items != nil && propSchema.Items.A != nil {
@@ -612,6 +617,78 @@ func buildEnum(name string, proxy *base.SchemaProxy, ctx *Context) (*ProtoEnum, 
 	ctx.Enums = append(ctx.Enums, enum)
 	ctx.Definitions = append(ctx.Definitions, enum)
 	return enum, nil
+}
+
+// isMapSchema reports whether an object schema is a typed-`additionalProperties`
+// map: `type: object` carrying a typed `additionalProperties` value schema and no
+// declared `properties`. Such a schema becomes a proto3 `map<string, V>` field
+// rather than a nested message. An untyped `additionalProperties: true` (the bool
+// form) is not a typed map and returns false; DUH lint forbids it upstream.
+func isMapSchema(schema *base.Schema) bool {
+	if schema == nil || schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() {
+		return false
+	}
+	return schema.Properties == nil || schema.Properties.Len() == 0
+}
+
+// buildMapType derives the proto3 `map<string, V>` type for a typed
+// `additionalProperties` schema. OpenAPI object keys are always strings, so the key
+// is always `string`. The value type is the referenced message name when the value
+// is a $ref, otherwise the proto scalar mapped from the value's type/format. proto3
+// forbids map values that are themselves maps, arrays, or messages-by-inline-object,
+// so those are rejected rather than silently mis-rendered.
+func buildMapType(schema *base.Schema, propertyName string, ctx *Context) (string, error) {
+	value := schema.AdditionalProperties.A
+	if value == nil {
+		return "", fmt.Errorf("property '%s': additionalProperties map has no value schema", propertyName)
+	}
+
+	if value.IsReference() {
+		typeName, err := internal.ExtractReferenceName(value.GetReference())
+		if err != nil {
+			return "", fmt.Errorf("property '%s': %w", propertyName, err)
+		}
+		return fmt.Sprintf("map<string, %s>", typeName), nil
+	}
+
+	valueSchema := value.Schema()
+	if valueSchema == nil {
+		if err := value.GetBuildError(); err != nil {
+			return "", fmt.Errorf("property '%s': failed to resolve additionalProperties value: %w", propertyName, err)
+		}
+		return "", fmt.Errorf("property '%s': additionalProperties value schema is nil", propertyName)
+	}
+
+	if len(valueSchema.Type) == 0 {
+		return "", fmt.Errorf("property '%s': additionalProperties value must have a type or $ref", propertyName)
+	}
+	if internal.Contains(valueSchema.Type, "object") || internal.Contains(valueSchema.Type, "array") {
+		return "", fmt.Errorf("property '%s': additionalProperties value type %v not supported; map values must be a scalar or $ref", propertyName, valueSchema.Type)
+	}
+
+	valueType, err := MapScalarType(ctx, valueSchema.Type[0], valueSchema.Format)
+	if err != nil {
+		return "", fmt.Errorf("property '%s': %w", propertyName, err)
+	}
+	return fmt.Sprintf("map<string, %s>", valueType), nil
+}
+
+// mapValueReference returns the referenced schema name of a typed-`additionalProperties`
+// map value when that value is a $ref, or "" otherwise (scalar value, or not a map).
+// Used to record a dependency edge so a map<string, Msg> keeps Msg reachable.
+func mapValueReference(schema *base.Schema) string {
+	if !isMapSchema(schema) {
+		return ""
+	}
+	value := schema.AdditionalProperties.A
+	if value == nil || !value.IsReference() {
+		return ""
+	}
+	parts := strings.Split(value.GetReference(), "/")
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[len(parts)-1]
 }
 
 // buildNestedMessage creates nested message from inline object property
