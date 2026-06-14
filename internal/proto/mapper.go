@@ -57,6 +57,15 @@ func ProtoType(schema *base.Schema, propertyName string, propProxy *base.SchemaP
 
 	// Check if it's an inline object
 	if len(schema.Type) > 0 && internal.Contains(schema.Type, "object") {
+		// A typed `additionalProperties` map (with no declared properties) is a
+		// proto3 `map<string, V>` field, not a nested message.
+		if isMapSchema(schema) {
+			mapType, err := buildMapType(schema, propertyName, ctx)
+			if err != nil {
+				return "", false, nil, err
+			}
+			return mapType, false, nil, nil
+		}
 		// Build nested message
 		nestedMsg, err := buildNestedMessage(propertyName, propProxy, ctx, parentMsg)
 		if err != nil {
